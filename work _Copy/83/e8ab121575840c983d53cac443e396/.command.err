@@ -1,0 +1,15 @@
+Unable to find image 'quay.io/biocontainers/python:3.9--1' locally
+3.9--1: Pulling from biocontainers/python
+c1a16a04cedd: Pulling fs layer
+4ca545ee6d5d: Pulling fs layer
+5f7a6762e5ca: Pulling fs layer
+4ca545ee6d5d: Download complete
+c1a16a04cedd: Download complete
+c1a16a04cedd: Pull complete
+4ca545ee6d5d: Pull complete
+5f7a6762e5ca: Verifying Checksum
+5f7a6762e5ca: Download complete
+5f7a6762e5ca: Pull complete
+Digest: sha256:d97d2b329b4e44d2e07a9737ba348b185d6a47f34fba0ef301d44d11669cac60
+Status: Downloaded newer image for quay.io/biocontainers/python:3.9--1
+WARNING: Running pip as the 'root' user can result in broken permissions and conflicting behaviour with the system package manager. It is recommended to use a virtual environment instead: https://pip.pypa.io/warnings/venv

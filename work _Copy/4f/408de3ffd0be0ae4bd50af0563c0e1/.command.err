@@ -1,0 +1,17 @@
+Unable to find image 'quay.io/biocontainers/mash:2.3--he348c14_1' locally
+2.3--he348c14_1: Pulling from biocontainers/mash
+cefc4d495539: Pulling fs layer
+4ca545ee6d5d: Pulling fs layer
+cdbdd1bfe9e2: Pulling fs layer
+4ca545ee6d5d: Download complete
+cefc4d495539: Verifying Checksum
+cefc4d495539: Download complete
+cefc4d495539: Pull complete
+4ca545ee6d5d: Pull complete
+cdbdd1bfe9e2: Download complete
+cdbdd1bfe9e2: Pull complete
+Digest: sha256:08edd15a3c797c84a28fc16a201e4715cdade1fdb14eb4164bb9731e7b7c0f38
+Status: Downloaded newer image for quay.io/biocontainers/mash:2.3--he348c14_1
+Estimated genome size: 7.0546e+06
+Estimated coverage:    1.0111
+Writing to IE-0021.msh...

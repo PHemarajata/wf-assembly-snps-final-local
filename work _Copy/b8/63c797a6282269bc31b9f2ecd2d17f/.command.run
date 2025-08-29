@@ -1,0 +1,674 @@
+#!/bin/bash
+### ---
+### name: 'ASSEMBLY_SNPS_SCALABLE:CLUSTERING:MASH_DIST (pairwise_distances)'
+### container: 'quay.io/biocontainers/mash:2.3--he348c14_1'
+### outputs:
+### - 'mash_distances.tsv'
+### - 'versions.yml'
+### ...
+set -e
+set -u
+NXF_DEBUG=${NXF_DEBUG:=0}; [[ $NXF_DEBUG > 1 ]] && set -x
+NXF_ENTRY=${1:-nxf_main}
+
+nxf_tree() {
+    local pid=$1
+
+    declare -a ALL_CHILDREN
+    while read P PP;do
+        ALL_CHILDREN[$PP]+=" $P"
+    done < <(ps -e -o pid= -o ppid=)
+
+    pstat() {
+        local x_pid=$1
+        local STATUS=$(2> /dev/null < /proc/$1/status grep -E 'Vm|ctxt')
+
+        if [ $? = 0 ]; then
+        local  x_vsz=$(echo "$STATUS" | grep VmSize | awk '{print $2}' || echo -n '0')
+        local  x_rss=$(echo "$STATUS" | grep VmRSS | awk '{print $2}' || echo -n '0')
+        local x_peak=$(echo "$STATUS" | grep -E 'VmPeak|VmHWM' | sed 's/^.*:\s*//' | sed 's/[\sa-zA-Z]*$//' | tr '\n' ' ' || echo -n '0 0')
+        local x_pmem=$(awk -v rss=$x_rss -v mem_tot=$mem_tot 'BEGIN {printf "%.0f", rss/mem_tot*100*10}' || echo -n '0')
+        local vol_ctxt=$(echo "$STATUS" | grep '\bvoluntary_ctxt_switches' | awk '{print $2}' || echo -n '0')
+        local inv_ctxt=$(echo "$STATUS" | grep '\bnonvoluntary_ctxt_switches' | awk '{print $2}' || echo -n '0')
+        cpu_stat[x_pid]="$x_pid $x_pmem $x_vsz $x_rss $x_peak $vol_ctxt $inv_ctxt"
+        fi
+    }
+
+    pwalk() {
+        pstat $1
+        for i in ${ALL_CHILDREN[$1]:=}; do pwalk $i; done
+    }
+
+    pwalk $1
+}
+
+nxf_stat() {
+    cpu_stat=()
+    nxf_tree $1
+
+    declare -a sum=(0 0 0 0 0 0 0 0)
+    local pid
+    local i
+    for pid in "${!cpu_stat[@]}"; do
+        local row=(${cpu_stat[pid]})
+        [ $NXF_DEBUG = 1 ] && echo "++ stat mem=${row[*]}"
+        for i in "${!row[@]}"; do
+        if [ $i != 0 ]; then
+            sum[i]=$((sum[i]+row[i]))
+        fi
+        done
+    done
+
+    [ $NXF_DEBUG = 1 ] && echo -e "++ stat SUM=${sum[*]}"
+
+    for i in {1..7}; do
+        if [ ${sum[i]} -lt ${cpu_peak[i]} ]; then
+            sum[i]=${cpu_peak[i]}
+        else
+            cpu_peak[i]=${sum[i]}
+        fi
+    done
+
+    [ $NXF_DEBUG = 1 ] && echo -e "++ stat PEAK=${sum[*]}\n"
+    nxf_stat_ret=(${sum[*]})
+}
+
+nxf_mem_watch() {
+    set -o pipefail
+    local pid=$1
+    local trace_file=.command.trace
+    local count=0;
+    declare -a cpu_stat=(0 0 0 0 0 0 0 0)
+    declare -a cpu_peak=(0 0 0 0 0 0 0 0)
+    local mem_tot=$(< /proc/meminfo grep MemTotal | awk '{print $2}')
+    local timeout
+    local DONE
+    local STOP=''
+
+    [ $NXF_DEBUG = 1 ] && nxf_sleep 0.2 && ps fx
+
+    while true; do
+        nxf_stat $pid
+        if [ $count -lt 10 ]; then timeout=1;
+        elif [ $count -lt 120 ]; then timeout=5;
+        else timeout=30;
+        fi
+        read -t $timeout -r DONE || true
+        [[ $DONE ]] && break
+        if [ ! -e /proc/$pid ]; then
+            [ ! $STOP ] && STOP=$(nxf_date)
+            [ $(($(nxf_date)-STOP)) -gt 10000 ] && break
+        fi
+        count=$((count+1))
+    done
+
+    printf "%s\n" \
+        "%mem=${nxf_stat_ret[1]}" \
+        "vmem=${nxf_stat_ret[2]}" \
+        "rss=${nxf_stat_ret[3]}" \
+        "peak_vmem=${nxf_stat_ret[4]}" \
+        "peak_rss=${nxf_stat_ret[5]}" \
+        "vol_ctxt=${nxf_stat_ret[6]}" \
+        "inv_ctxt=${nxf_stat_ret[7]}" >> "$trace_file" || >&2 echo "Error: Failed to append to file: $trace_file"
+}
+
+nxf_write_trace() {
+    printf "%s\n" \
+        "nextflow.trace/v2" \
+        "realtime=$wall_time" \
+        "%cpu=$ucpu" \
+        "cpu_model=$cpu_model" \
+        "rchar=${io_stat1[0]}" \
+        "wchar=${io_stat1[1]}" \
+        "syscr=${io_stat1[2]}" \
+        "syscw=${io_stat1[3]}" \
+        "read_bytes=${io_stat1[4]}" \
+        "write_bytes=${io_stat1[5]}" >| "$trace_file" || >&2 echo "Error: Failed to write to file: $trace_file"
+}
+
+nxf_trace_mac() {
+    local start_millis=$(nxf_date)
+
+    /bin/bash -euo pipefail /home/phemarajata/wf-assembly-snps-final/work/b8/63c797a6282269bc31b9f2ecd2d17f/.command.sh
+
+    local end_millis=$(nxf_date)
+    local wall_time=$((end_millis-start_millis))
+    local ucpu=''
+    local cpu_model=''
+    local io_stat1=('' '' '' '' '' '')
+    nxf_write_trace
+}
+
+nxf_fd() {
+    local FD=11
+    while [ -e /proc/$$/fd/$FD ]; do FD=$((FD+1)); done
+    echo $FD
+}
+
+nxf_trace_linux() {
+    local pid=$$
+    command -v ps &>/dev/null || { >&2 echo "Command 'ps' required by nextflow to collect task metrics cannot be found"; exit 1; }
+    local num_cpus=$(< /proc/cpuinfo grep '^processor' -c)
+    local cpu_model=$(< /proc/cpuinfo grep '^model name' | head -n 1 | awk 'BEGIN{FS="\t: "} { print $2 }')
+    local tot_time0=$(grep '^cpu ' /proc/stat | awk '{sum=$2+$3+$4+$5+$6+$7+$8+$9; printf "%.0f",sum}')
+    local cpu_time0=$(2> /dev/null < /proc/$pid/stat awk '{printf "%.0f", ($16+$17)*10 }' || echo -n 'X')
+    local io_stat0=($(2> /dev/null < /proc/$pid/io sed 's/^.*:\s*//' | head -n 6 | tr '\n' ' ' || echo -n '0 0 0 0 0 0'))
+    local start_millis=$(nxf_date)
+    trap 'kill $mem_proc' ERR
+    
+    /bin/bash -euo pipefail /home/phemarajata/wf-assembly-snps-final/work/b8/63c797a6282269bc31b9f2ecd2d17f/.command.sh &
+    local task=$!
+
+    mem_fd=$(nxf_fd)
+    eval "exec $mem_fd> >(nxf_mem_watch $task)"
+    local mem_proc=$!
+
+    wait $task
+
+    local end_millis=$(nxf_date)
+    local tot_time1=$(grep '^cpu ' /proc/stat | awk '{sum=$2+$3+$4+$5+$6+$7+$8+$9; printf "%.0f",sum}')
+    local cpu_time1=$(2> /dev/null < /proc/$pid/stat awk '{printf "%.0f", ($16+$17)*10 }' || echo -n 'X')
+    local ucpu=$(awk -v p1=$cpu_time1 -v p0=$cpu_time0 -v t1=$tot_time1 -v t0=$tot_time0 -v n=$num_cpus 'BEGIN { pct=(p1-p0)/(t1-t0)*100*n; printf("%.0f", pct>0 ? pct : 0) }' )
+
+    local io_stat1=($(2> /dev/null < /proc/$pid/io sed 's/^.*:\s*//' | head -n 6 | tr '\n' ' ' || echo -n '0 0 0 0 0 0'))
+    local i
+    for i in {0..5}; do
+        io_stat1[i]=$((io_stat1[i]-io_stat0[i]))
+    done
+
+    local wall_time=$((end_millis-start_millis))
+    [ $NXF_DEBUG = 1 ] && echo "+++ STATS %CPU=$ucpu TIME=$wall_time I/O=${io_stat1[*]}"
+
+    printf "%s\n" \
+        "nextflow.trace/v2" \
+        "realtime=$wall_time" \
+        "%cpu=$ucpu" \
+        "cpu_model=$cpu_model" \
+        "rchar=${io_stat1[0]}" \
+        "wchar=${io_stat1[1]}" \
+        "syscr=${io_stat1[2]}" \
+        "syscw=${io_stat1[3]}" \
+        "read_bytes=${io_stat1[4]}" \
+        "write_bytes=${io_stat1[5]}" >| "$trace_file" || >&2 echo "Error: Failed to write to file: $trace_file"
+
+    [ -e /proc/$mem_proc ] && eval "echo 'DONE' >&$mem_fd" || true
+    wait $mem_proc 2>/dev/null || true
+    while [ -e /proc/$mem_proc ]; do nxf_sleep 0.1; done
+}
+
+nxf_trace() {
+    local trace_file=.command.trace
+    touch $trace_file
+    if [[ $(uname) = Darwin ]]; then
+        nxf_trace_mac
+    else
+        nxf_trace_linux
+    fi
+}
+nxf_container_env() {
+cat << EOF
+export PYTHONNOUSERSITE="1"
+export R_PROFILE_USER="/.Rprofile"
+export R_ENVIRON_USER="/.Renviron"
+export JULIA_DEPOT_PATH="/usr/local/share/julia"
+export PATH="\$PATH:/home/phemarajata/wf-assembly-snps-final/bin"
+EOF
+}
+
+nxf_sleep() {
+  sleep $1 2>/dev/null || sleep 1;
+}
+
+nxf_date() {
+    local ts=$(date +%s%3N);
+    if [[ ${#ts} == 10 ]]; then echo ${ts}000
+    elif [[ $ts == *%3N ]]; then echo ${ts/\%3N/000}
+    elif [[ $ts == *3N ]]; then echo ${ts/3N/000}
+    elif [[ ${#ts} == 13 ]]; then echo $ts
+    else echo "Unexpected timestamp value: $ts"; exit 1
+    fi
+}
+
+nxf_env() {
+    echo '============= task environment ============='
+    env | sort | sed "s/\(.*\)AWS\(.*\)=\(.\{6\}\).*/\1AWS\2=\3xxxxxxxxxxxxx/"
+    echo '============= task output =================='
+}
+
+nxf_kill() {
+    declare -a children
+    while read P PP;do
+        children[$PP]+=" $P"
+    done < <(ps -e -o pid= -o ppid=)
+
+    kill_all() {
+        [[ $1 != $$ ]] && kill $1 2>/dev/null || true
+        for i in ${children[$1]:=}; do kill_all $i; done
+    }
+
+    kill_all $1
+}
+
+nxf_mktemp() {
+    local base=${1:-/tmp}
+    mkdir -p "$base"
+    if [[ $(uname) = Darwin ]]; then mktemp -d $base/nxf.XXXXXXXXXX
+    else TMPDIR="$base" mktemp -d -t nxf.XXXXXXXXXX
+    fi
+}
+
+nxf_fs_copy() {
+  local source=$1
+  local target=$2
+  local basedir=$(dirname $1)
+  mkdir -p $target/$basedir
+  cp -fRL $source $target/$basedir
+}
+
+nxf_fs_move() {
+  local source=$1
+  local target=$2
+  local basedir=$(dirname $1)
+  mkdir -p $target/$basedir
+  mv -f $source $target/$basedir
+}
+
+nxf_fs_rsync() {
+  rsync -rRl $1 $2
+}
+
+nxf_fs_rclone() {
+  rclone copyto $1 $2/$1
+}
+
+nxf_fs_fcp() {
+  fcp $1 $2/$1
+}
+
+on_exit() {
+    local last_err=$?
+    local exit_status=${nxf_main_ret:=0}
+    [[ ${exit_status} -eq 0 && ${nxf_unstage_ret:=0} -ne 0 ]] && exit_status=${nxf_unstage_ret:=0}
+    [[ ${exit_status} -eq 0 && ${last_err} -ne 0 ]] && exit_status=${last_err}
+    printf -- $exit_status > /home/phemarajata/wf-assembly-snps-final/work/b8/63c797a6282269bc31b9f2ecd2d17f/.exitcode
+    set +u
+    docker rm $NXF_BOXID &>/dev/null || true
+    exit $exit_status
+}
+
+on_term() {
+    set +e
+    docker stop $NXF_BOXID
+}
+
+nxf_launch() {
+    docker run -i --cpu-shares 2048 --memory 4096m -e "NXF_TASK_WORKDIR" -e "NXF_DEBUG=${NXF_DEBUG:=0}" -v /home/phemarajata/wf-assembly-snps-final:/home/phemarajata/wf-assembly-snps-final -w "$NXF_TASK_WORKDIR" --name $NXF_BOXID quay.io/biocontainers/mash:2.3--he348c14_1 /bin/bash -c "eval $(nxf_container_env); /bin/bash -euo pipefail /home/phemarajata/wf-assembly-snps-final/work/b8/63c797a6282269bc31b9f2ecd2d17f/.command.run nxf_trace"
+}
+
+nxf_stage() {
+    true
+    # stage input files
+    ln -s /home/phemarajata/wf-assembly-snps-final/work/a3/b4d1e23b635679a35a29820135365f/IE-0010.msh IE-0010.msh
+    ln -s /home/phemarajata/wf-assembly-snps-final/work/27/1aca9b386bf57ac72eb989e38d4e0b/GCA_963569795_1.msh GCA_963569795_1.msh
+    ln -s /home/phemarajata/wf-assembly-snps-final/work/09/c4f95e7c0512c7def9b334478baf31/IP-0136.msh IP-0136.msh
+    ln -s /home/phemarajata/wf-assembly-snps-final/work/db/56ea9c7d3ffea69fc50e232325ff5a/GCA_963564305_1.msh GCA_963564305_1.msh
+    ln -s /home/phemarajata/wf-assembly-snps-final/work/f7/ee6852624064ebb349d0ce322f2b3e/IP-0004.msh IP-0004.msh
+    ln -s /home/phemarajata/wf-assembly-snps-final/work/cf/b005a91c5d1ed3e03221f3d1d57327/IP-0101.msh IP-0101.msh
+    ln -s /home/phemarajata/wf-assembly-snps-final/work/b4/7a184be9515f06c7e316eb3b8d2b07/IP-0144.msh IP-0144.msh
+    ln -s /home/phemarajata/wf-assembly-snps-final/work/61/c7c7d00ec494bfb14fa5ec6afd6143/IP-0012.msh IP-0012.msh
+    ln -s /home/phemarajata/wf-assembly-snps-final/work/08/290f82e6781d0f6ca3d4a6ab53677d/IP-0187.msh IP-0187.msh
+    ln -s /home/phemarajata/wf-assembly-snps-final/work/97/8f73fba1e7e144bc497505c9c5a022/IP-0179.msh IP-0179.msh
+    ln -s /home/phemarajata/wf-assembly-snps-final/work/37/72fe71cbe6e8f6e5077735aa68917d/IP-0047.msh IP-0047.msh
+    ln -s /home/phemarajata/wf-assembly-snps-final/work/73/4da1c00623c7ca1d39fc00aa2b22bb/IP-0195.msh IP-0195.msh
+    ln -s /home/phemarajata/wf-assembly-snps-final/work/56/acddc54fcf72edc545ad57a79d13d8/IP-0063.msh IP-0063.msh
+    ln -s /home/phemarajata/wf-assembly-snps-final/work/5e/cfac98ab264fb0b9fd868dd4e0fb76/IP-0020.msh IP-0020.msh
+    ln -s /home/phemarajata/wf-assembly-snps-final/work/ba/78bfecae0c41370e47eb4117cd120c/GCF_002110985_1_USA_Puerto_Rico.msh GCF_002110985_1_USA_Puerto_Rico.msh
+    ln -s /home/phemarajata/wf-assembly-snps-final/work/71/a96ed39d08df58627dce07fc014eb9/IP-0152.msh IP-0152.msh
+    ln -s /home/phemarajata/wf-assembly-snps-final/work/bf/34bb97f8599c1d97619dc609283148/GCA_963568055_1.msh GCA_963568055_1.msh
+    ln -s /home/phemarajata/wf-assembly-snps-final/work/05/43902100f193c3a9e95dee0e3aecae/IP-0098.msh IP-0098.msh
+    ln -s /home/phemarajata/wf-assembly-snps-final/work/b8/9fe327d2cb7a9f8963651b1f6aba3c/IP-0055.msh IP-0055.msh
+    ln -s /home/phemarajata/wf-assembly-snps-final/work/6a/976c38771b15a84e438896f05970f6/ERS012365.msh ERS012365.msh
+    ln -s /home/phemarajata/wf-assembly-snps-final/work/3b/0c151097aab7c544c86b33b9575b16/IE-0009.msh IE-0009.msh
+    ln -s /home/phemarajata/wf-assembly-snps-final/work/b1/c56940a2a7d142606bd4506aa538d6/IP-0199.msh IP-0199.msh
+    ln -s /home/phemarajata/wf-assembly-snps-final/work/f9/1f7102b7daf7342b4d09f724e78580/IP-0113.msh IP-0113.msh
+    ln -s /home/phemarajata/wf-assembly-snps-final/work/53/e50a4314979b8fb2fa72557092a4d1/GCA_963567935_1.msh GCA_963567935_1.msh
+    ln -s /home/phemarajata/wf-assembly-snps-final/work/00/77d8a2114edbe11e8bf7c9d2c1a3a2/IP-0105.msh IP-0105.msh
+    ln -s /home/phemarajata/wf-assembly-snps-final/work/e4/7aceb84ab80a527357ba07e2408b99/IP-0156.msh IP-0156.msh
+    ln -s /home/phemarajata/wf-assembly-snps-final/work/16/b53952dd77d7c6a6ccc19475d8f2a4/GCF_025847905_1_Viet_Nam.msh GCF_025847905_1_Viet_Nam.msh
+    ln -s /home/phemarajata/wf-assembly-snps-final/work/c1/8019480e37aac4e91a2e1ec2b848c0/IP-0075.msh IP-0075.msh
+    ln -s /home/phemarajata/wf-assembly-snps-final/work/c4/274a0611fc90f4ce91f08f3ee1ce97/IP-0160.msh IP-0160.msh
+    ln -s /home/phemarajata/wf-assembly-snps-final/work/f9/e360ca9d8c6eb8bbbdc6528a3bccf7/IP-0032.msh IP-0032.msh
+    ln -s /home/phemarajata/wf-assembly-snps-final/work/e8/af72dafc4a26a624f60aea3c2e3ad7/GCA_963566625_1.msh GCA_963566625_1.msh
+    ln -s /home/phemarajata/wf-assembly-snps-final/work/ba/70012e8f5c8a35fcb5c1c3b75b06ff/IP-0008.msh IP-0008.msh
+    ln -s /home/phemarajata/wf-assembly-snps-final/work/47/2756445cb46709af5cc438ab1dac4d/ERS013343.msh ERS013343.msh
+    ln -s /home/phemarajata/wf-assembly-snps-final/work/eb/9db55cdee88424fcf1c8c026bfbcaa/GCA_963560915_1.msh GCA_963560915_1.msh
+    ln -s /home/phemarajata/wf-assembly-snps-final/work/d7/a10c6a8f4a9403e3c6f19deb5669fd/IP-0091.msh IP-0091.msh
+    ln -s /home/phemarajata/wf-assembly-snps-final/work/c4/8bf73dcf4e35c466c9777b9c7b1a25/GCA_963568785_1.msh GCA_963568785_1.msh
+    ln -s /home/phemarajata/wf-assembly-snps-final/work/ea/3f499ebb532b32a71ccdc2cfc5a6ea/IE-0014.msh IE-0014.msh
+    ln -s /home/phemarajata/wf-assembly-snps-final/work/12/de4e5c84620875c5206ac5b9ef6abd/IP-0039.msh IP-0039.msh
+    ln -s /home/phemarajata/wf-assembly-snps-final/work/9e/3b27779c314f2708768dab1e854d11/IP-0027.msh IP-0027.msh
+    ln -s /home/phemarajata/wf-assembly-snps-final/work/01/7f81e4d4b7c157142bec309edff46e/IP-0172.msh IP-0172.msh
+    ln -s /home/phemarajata/wf-assembly-snps-final/work/1d/f5d86f6cb9d08ce20ecb4b5323541a/IP-0124.msh IP-0124.msh
+    ln -s /home/phemarajata/wf-assembly-snps-final/work/ac/09b8648dd17afa915f067acaa671f0/IP-0078.msh IP-0078.msh
+    ln -s /home/phemarajata/wf-assembly-snps-final/work/b9/7eb67db90d30cada9ab6bb256802c0/GCA_963565395_1.msh GCA_963565395_1.msh
+    ln -s /home/phemarajata/wf-assembly-snps-final/work/e5/110ab33b8f63b04d9f0d30d8f3f41a/IP-0035.msh IP-0035.msh
+    ln -s /home/phemarajata/wf-assembly-snps-final/work/79/bbfb428b1876f77406cc5665f6e96d/IP-0167.msh IP-0167.msh
+    ln -s /home/phemarajata/wf-assembly-snps-final/work/90/27178256bf21f65b2460c162d8ed31/IP-0060.msh IP-0060.msh
+    ln -s /home/phemarajata/wf-assembly-snps-final/work/f0/664916bea159bfd5a9b6dc2ae5472e/GCA_963568705_1.msh GCA_963568705_1.msh
+    ln -s /home/phemarajata/wf-assembly-snps-final/work/e0/daff8465eba92a4edb6172fdd9393d/IP-0116.msh IP-0116.msh
+    ln -s /home/phemarajata/wf-assembly-snps-final/work/8c/6ae347a42510f1f90aefac39b0d7d5/IP-0184.msh IP-0184.msh
+    ln -s /home/phemarajata/wf-assembly-snps-final/work/a3/29bf09ac06d63ce0d2a15d00afe47d/IP-0052.msh IP-0052.msh
+    ln -s /home/phemarajata/wf-assembly-snps-final/work/55/b2f6c4f714d55d9ae6810709ea2b9c/IP-0108.msh IP-0108.msh
+    ln -s /home/phemarajata/wf-assembly-snps-final/work/45/5a6837c8f7c28160fd537685813193/IP-0086.msh IP-0086.msh
+    ln -s /home/phemarajata/wf-assembly-snps-final/work/ec/2cb491ea510380269716e71fe2baa9/IP-0095.msh IP-0095.msh
+    ln -s /home/phemarajata/wf-assembly-snps-final/work/7f/94d3c24896742d67b95c1e313ec298/IE-0006.msh IE-0006.msh
+    ln -s /home/phemarajata/wf-assembly-snps-final/work/29/bb0a96b72fd2cbe60f5464b8902138/IP-0043.msh IP-0043.msh
+    ln -s /home/phemarajata/wf-assembly-snps-final/work/b0/19cc9e464451a5107df713affad018/GCA_963569685_1.msh GCA_963569685_1.msh
+    ln -s /home/phemarajata/wf-assembly-snps-final/work/05/f16269fc357e91d2e0d85db19d56ae/ERS012309.msh ERS012309.msh
+    ln -s /home/phemarajata/wf-assembly-snps-final/work/1f/df23074a7aa7590c8b8ab979e031b0/GCA_963562795_1.msh GCA_963562795_1.msh
+    ln -s /home/phemarajata/wf-assembly-snps-final/work/09/7b3606c048d23ca05aecf723f6521e/IP-0191.msh IP-0191.msh
+    ln -s /home/phemarajata/wf-assembly-snps-final/work/6f/158d165daf84d61db8ef154432c62e/IP-0148.msh IP-0148.msh
+    ln -s /home/phemarajata/wf-assembly-snps-final/work/1c/02af00173eb57ecae7cbb9c0b4f330/IP-0016.msh IP-0016.msh
+    ln -s /home/phemarajata/wf-assembly-snps-final/work/d1/7dab6b0bc471634d0cc4291d24b92e/IP-0059.msh IP-0059.msh
+    ln -s /home/phemarajata/wf-assembly-snps-final/work/2c/acd30420b07b329eef4780c22b5479/IP-0067.msh IP-0067.msh
+    ln -s /home/phemarajata/wf-assembly-snps-final/work/27/f871bd45ab89378bad0cbef5903429/IE-0017.msh IE-0017.msh
+    ln -s /home/phemarajata/wf-assembly-snps-final/work/8a/335e836c9185afe511d5db23c9daee/GCA_963561855_1.msh GCA_963561855_1.msh
+    ln -s /home/phemarajata/wf-assembly-snps-final/work/a2/7b144874f013963417338863a8c2f6/IP-0024.msh IP-0024.msh
+    ln -s /home/phemarajata/wf-assembly-snps-final/work/ff/7e66c25722f5dac376b9b4fb0428b4/ERS012313.msh ERS012313.msh
+    ln -s /home/phemarajata/wf-assembly-snps-final/work/28/99a2b4df8c9c9d211b9d97f6862f3a/GCA_963569645_1.msh GCA_963569645_1.msh
+    ln -s /home/phemarajata/wf-assembly-snps-final/work/4f/408de3ffd0be0ae4bd50af0563c0e1/IE-0021.msh IE-0021.msh
+    ln -s /home/phemarajata/wf-assembly-snps-final/work/ef/9de2f9e96d379e2b8089aaca8bb165/IP-0071.msh IP-0071.msh
+    ln -s /home/phemarajata/wf-assembly-snps-final/work/d5/72c522910f595efb6ececbf4279fb2/IP-0201.msh IP-0201.msh
+    ln -s /home/phemarajata/wf-assembly-snps-final/work/70/42da5de886140535e8b745b252a995/ERS012330.msh ERS012330.msh
+    ln -s /home/phemarajata/wf-assembly-snps-final/work/da/d554b7aff974c131acee6a66579f11/IP-0120.msh IP-0120.msh
+    ln -s /home/phemarajata/wf-assembly-snps-final/work/c8/a3c1e584f06232595ddf67ac73ea7e/GCA_963560585_1.msh GCA_963560585_1.msh
+    ln -s /home/phemarajata/wf-assembly-snps-final/work/6b/bbab8cf8e171c1f25ab9df4584124c/IP-0180.msh IP-0180.msh
+    ln -s /home/phemarajata/wf-assembly-snps-final/work/c3/92456ffeb179b7bac9a882ed4d5d57/IP-0159.msh IP-0159.msh
+    ln -s /home/phemarajata/wf-assembly-snps-final/work/87/104da0352d08eb3e4d76ad82dc3a81/IP-0133.msh IP-0133.msh
+    ln -s /home/phemarajata/wf-assembly-snps-final/work/4c/92a21a0cd2e483ec8ae1112b67554b/GCA_963566855_1.msh GCA_963566855_1.msh
+    ln -s /home/phemarajata/wf-assembly-snps-final/work/45/63c8f9de274a8abc3bf5399b948f57/IP-0163.msh IP-0163.msh
+    ln -s /home/phemarajata/wf-assembly-snps-final/work/c8/4e3c752b4a281b44d9e8e200dfdad2/IP-0176.msh IP-0176.msh
+    ln -s /home/phemarajata/wf-assembly-snps-final/work/af/05c177f1257fa4e204c8a02eae3e48/ERS013354.msh ERS013354.msh
+    ln -s /home/phemarajata/wf-assembly-snps-final/work/cf/32d0e7bbf487d66d5a65fab32b45b6/IP-0153.msh IP-0153.msh
+    ln -s /home/phemarajata/wf-assembly-snps-final/work/aa/f954e38203991fd92f48d03400baba/IP-0021.msh IP-0021.msh
+    ln -s /home/phemarajata/wf-assembly-snps-final/work/78/84b61e137f51d0bd706bb3f1833238/IP-0171.msh IP-0171.msh
+    ln -s /home/phemarajata/wf-assembly-snps-final/work/4c/1ccfd8c0ddcef13489e661ac2816aa/GCA_963567325_1.msh GCA_963567325_1.msh
+    ln -s /home/phemarajata/wf-assembly-snps-final/work/44/6af824c91db7e3b4b1c0357fab423a/GCA_963562695_1.msh GCA_963562695_1.msh
+    ln -s /home/phemarajata/wf-assembly-snps-final/work/79/252da29b6a35587492693db9d22124/IP-0110.msh IP-0110.msh
+    ln -s /home/phemarajata/wf-assembly-snps-final/work/0f/7b3ae9609fe02da568f3eb902d5c96/GCA_963562615_1.msh GCA_963562615_1.msh
+    ln -s /home/phemarajata/wf-assembly-snps-final/work/b6/4a54d0df2961711581d0b2ad6104ed/IE-0011.msh IE-0011.msh
+    ln -s /home/phemarajata/wf-assembly-snps-final/work/e0/147f14ee38550957f757324ddea358/IP-0064.msh IP-0064.msh
+    ln -s /home/phemarajata/wf-assembly-snps-final/work/8d/fd81f50a3d055e9078499d9698d84c/IP-0196.msh IP-0196.msh
+    ln -s /home/phemarajata/wf-assembly-snps-final/work/ed/e8ba76034eb2ed9fbac98f28f33868/IP-0046.msh IP-0046.msh
+    ln -s /home/phemarajata/wf-assembly-snps-final/work/1d/cb3771a780aab446647eaf1087ea4a/IP-0003.msh IP-0003.msh
+    ln -s /home/phemarajata/wf-assembly-snps-final/work/b0/7ae117937d4c1b30025b4e5f9925e6/ERS012370.msh ERS012370.msh
+    ln -s /home/phemarajata/wf-assembly-snps-final/work/60/5598d7ff1cff4da42901776e44d6a4/SRR12527885_contigs.msh SRR12527885_contigs.msh
+    ln -s /home/phemarajata/wf-assembly-snps-final/work/02/6acd72651bba1f6caec5d1afd31e40/IP-0092.msh IP-0092.msh
+    ln -s /home/phemarajata/wf-assembly-snps-final/work/ae/1768a8d0f81ead20e29d7f6cc3e499/IP-0186.msh IP-0186.msh
+    ln -s /home/phemarajata/wf-assembly-snps-final/work/0d/c20503a4ea321c45bd34b7a612b249/IP-0100.msh IP-0100.msh
+    ln -s /home/phemarajata/wf-assembly-snps-final/work/f2/4bbd788d96211d9637545b81fc39e5/IP-0089.msh IP-0089.msh
+    ln -s /home/phemarajata/wf-assembly-snps-final/work/c1/48cca6fa925c078615a9f405e581ed/IE-0026.msh IE-0026.msh
+    ln -s /home/phemarajata/wf-assembly-snps-final/work/e9/27adfa63f6169c1be81710a68ac848/IP-0143.msh IP-0143.msh
+    ln -s /home/phemarajata/wf-assembly-snps-final/work/85/f0d3d4b942a80900d06a459fff0d27/IP-0015.msh IP-0015.msh
+    ln -s /home/phemarajata/wf-assembly-snps-final/work/6c/a012583c666a3745b0fac56b3ca987/IP-0058.msh IP-0058.msh
+    ln -s /home/phemarajata/wf-assembly-snps-final/work/14/fe476d8009c75c0236f89452c6431f/IP-0080.msh IP-0080.msh
+    ln -s /home/phemarajata/wf-assembly-snps-final/work/95/0e79040452a0fe61080a671d83e500/GCF_014713085_1_Laos.msh GCF_014713085_1_Laos.msh
+    ln -s /home/phemarajata/wf-assembly-snps-final/work/66/bad3430bfb47a03b09be937f902153/IP-0125.msh IP-0125.msh
+    ln -s /home/phemarajata/wf-assembly-snps-final/work/9f/22503e1eed11533b8108daff28ef0a/IP-0119.msh IP-0119.msh
+    ln -s /home/phemarajata/wf-assembly-snps-final/work/76/25a0fd64055ef8c41c21aec8bb054b/IP-0168.msh IP-0168.msh
+    ln -s /home/phemarajata/wf-assembly-snps-final/work/75/b76e0f51a32fe4757b418469c7571a/IP-0074.msh IP-0074.msh
+    ln -s /home/phemarajata/wf-assembly-snps-final/work/1a/cb893d8d6b6229f3951538d8ae4138/IP-0009.msh IP-0009.msh
+    ln -s /home/phemarajata/wf-assembly-snps-final/work/3c/3695bd7248b30840041abd78017bb7/GCA_963560735_1.msh GCA_963560735_1.msh
+    ln -s /home/phemarajata/wf-assembly-snps-final/work/9f/ebf74c7b4093ad7290c29c54de1b49/IE-0001.msh IE-0001.msh
+    ln -s /home/phemarajata/wf-assembly-snps-final/work/e2/273bd54847698cc37737ad107db327/GCA_963570025_1.msh GCA_963570025_1.msh
+    ln -s /home/phemarajata/wf-assembly-snps-final/work/6b/e7713fde42151d074b252815c5db8d/ERS012303.msh ERS012303.msh
+    ln -s /home/phemarajata/wf-assembly-snps-final/work/aa/1d4751b13279c3a19f42d6bbe7775e/IP-0031.msh IP-0031.msh
+    ln -s /home/phemarajata/wf-assembly-snps-final/work/e3/22492408076e2e09a38f461607a3c9/IP-0137.msh IP-0137.msh
+    ln -s /home/phemarajata/wf-assembly-snps-final/work/83/457253ca746a1ea5e9a5ab031f5247/GCA_963573095_1.msh GCA_963573095_1.msh
+    ln -s /home/phemarajata/wf-assembly-snps-final/work/4c/9b4f9b7e8a3cff20d1464c0c8327c1/GCA_963561215_1.msh GCA_963561215_1.msh
+    ln -s /home/phemarajata/wf-assembly-snps-final/work/a3/9e03526516f7e0ba1f3351fba68f79/IP-0192.msh IP-0192.msh
+    ln -s /home/phemarajata/wf-assembly-snps-final/work/21/cbba9956e2047f2fed73eb9aea5e3a/IP-0132.msh IP-0132.msh
+    ln -s /home/phemarajata/wf-assembly-snps-final/work/c5/c916e7475913b0f5d108a92ef31406/GCF_014712935_1_Laos.msh GCF_014712935_1_Laos.msh
+    ln -s /home/phemarajata/wf-assembly-snps-final/work/68/067456f14ec6eacc435b0f4d8004cb/GCF_014712915_1_Laos.msh GCF_014712915_1_Laos.msh
+    ln -s /home/phemarajata/wf-assembly-snps-final/work/a9/7bf44dcddde8c0bccaf244d6275dfd/IP-0115.msh IP-0115.msh
+    ln -s /home/phemarajata/wf-assembly-snps-final/work/4c/e08a1810dead905884881a38645fb9/IP-0158.msh IP-0158.msh
+    ln -s /home/phemarajata/wf-assembly-snps-final/work/34/aecf031516661cd8c6b4b82a17fe5a/GCA_963561075_1.msh GCA_963561075_1.msh
+    ln -s /home/phemarajata/wf-assembly-snps-final/work/fa/d25a47e4d1c84549a788d70cb8a745/GCA_963566695_1.msh GCA_963566695_1.msh
+    ln -s /home/phemarajata/wf-assembly-snps-final/work/bb/3d3d406ea51690922a059bb69e68f1/IP-0175.msh IP-0175.msh
+    ln -s /home/phemarajata/wf-assembly-snps-final/work/c9/5bd65a36220ad869c4cb205cace4a4/IP-0019.msh IP-0019.msh
+    ln -s /home/phemarajata/wf-assembly-snps-final/work/2c/6e0f2550824072f35ce651a510640c/IE-0016.msh IE-0016.msh
+    ln -s /home/phemarajata/wf-assembly-snps-final/work/3f/281b66f6815b5708af050c73a3f16f/IP-0042.msh IP-0042.msh
+    ln -s /home/phemarajata/wf-assembly-snps-final/work/7f/f5467caa46446f6db6227f61e198e1/GCA_963562965_1.msh GCA_963562965_1.msh
+    ln -s /home/phemarajata/wf-assembly-snps-final/work/cc/05214a7414bdd4a4c5ca3047b9a3e9/IP-0085.msh IP-0085.msh
+    ln -s /home/phemarajata/wf-assembly-snps-final/work/29/851a6177b1dbd954775dc1a88a4dcd/IP-0025.msh IP-0025.msh
+    ln -s /home/phemarajata/wf-assembly-snps-final/work/4d/ee6ec46b06b2b07de669606447e755/GCA_963566475_1.msh GCA_963566475_1.msh
+    ln -s /home/phemarajata/wf-assembly-snps-final/work/6a/7182399289d0b2ab16abbd2762ac94/IP-0109.msh IP-0109.msh
+    ln -s /home/phemarajata/wf-assembly-snps-final/work/a2/3cd245be10c43406bcf6f3a7b52cdb/IP-0068.msh IP-0068.msh
+    ln -s /home/phemarajata/wf-assembly-snps-final/work/50/330fec8994b87e40f0cb37341b3795/GCA_963561435_1.msh GCA_963561435_1.msh
+    ln -s /home/phemarajata/wf-assembly-snps-final/work/1f/16a813399cee9eb5beb6e8ef1b1d16/IP-0181.msh IP-0181.msh
+    ln -s /home/phemarajata/wf-assembly-snps-final/work/e7/b62be72c0bed546f963681a59af43f/ERS013348.msh ERS013348.msh
+    ln -s /home/phemarajata/wf-assembly-snps-final/work/10/50ec6c0b170cd4d712a35315e4d5c0/GCA_963569365_1.msh GCA_963569365_1.msh
+    ln -s /home/phemarajata/wf-assembly-snps-final/work/88/8a29309803b1cedc4d6bf7213f4507/GCA_963572615_1.msh GCA_963572615_1.msh
+    ln -s /home/phemarajata/wf-assembly-snps-final/work/48/a78a3404e7b82c54e28b23116c3017/GCA_963566175_1.msh GCA_963566175_1.msh
+    ln -s /home/phemarajata/wf-assembly-snps-final/work/1b/b29c38f213f30e7e3d1adab9646919/IP-0104.msh IP-0104.msh
+    ln -s /home/phemarajata/wf-assembly-snps-final/work/aa/98592e34aab911af429c319d329413/GCA_963571055_1.msh GCA_963571055_1.msh
+    ln -s /home/phemarajata/wf-assembly-snps-final/work/35/cb0f97ead3cdcc3fa3c8601b254796/IP-0147.msh IP-0147.msh
+    ln -s /home/phemarajata/wf-assembly-snps-final/work/d4/8eab05f22d5e9baaf13de1f5156035/IP-0121.msh IP-0121.msh
+    ln -s /home/phemarajata/wf-assembly-snps-final/work/ce/09da1ba305f0de52940dbdfbdeb292/IP-0164.msh IP-0164.msh
+    ln -s /home/phemarajata/wf-assembly-snps-final/work/2d/818a697260e94ffb0dc342fa457a92/IP-0036.msh IP-0036.msh
+    ln -s /home/phemarajata/wf-assembly-snps-final/work/c9/000887010a77d89bd1ce313bb9790e/IE-0022.msh IE-0022.msh
+    ln -s /home/phemarajata/wf-assembly-snps-final/work/6c/7b04e7d335bb07fd19be854a3487a7/IP-0053.msh IP-0053.msh
+    ln -s /home/phemarajata/wf-assembly-snps-final/work/e6/de2f03d4d555fddc9711d5f4f6854f/IP-0010.msh IP-0010.msh
+    ln -s /home/phemarajata/wf-assembly-snps-final/work/79/17ef373ece1ecb6e5c6f12a24bf051/IP-0079.msh IP-0079.msh
+    ln -s /home/phemarajata/wf-assembly-snps-final/work/e2/9f0b523cfbe57e4cdf483da3d588c4/GCA_963570105_1.msh GCA_963570105_1.msh
+    ln -s /home/phemarajata/wf-assembly-snps-final/work/cc/5936eb032886c88c2cb2b254560b25/IP-0200.msh IP-0200.msh
+    ln -s /home/phemarajata/wf-assembly-snps-final/work/bf/31ae857d99f758328ffd8ba33bda89/IP-0070.msh IP-0070.msh
+    ln -s /home/phemarajata/wf-assembly-snps-final/work/ee/569238261cea1a7b8fce2519144891/GCF_014712955_1_Laos.msh GCF_014712955_1_Laos.msh
+    ln -s /home/phemarajata/wf-assembly-snps-final/work/fb/0ffe6f4b3310ef6770af6818fb8c0c/IE-0005.msh IE-0005.msh
+    ln -s /home/phemarajata/wf-assembly-snps-final/work/d3/57c1351cff9f2769703df0aa8236dd/GCA_963560675_1.msh GCA_963560675_1.msh
+    ln -s /home/phemarajata/wf-assembly-snps-final/work/6e/13a16fef297378c933f1b3c1888dd7/IP-0096.msh IP-0096.msh
+    ln -s /home/phemarajata/wf-assembly-snps-final/work/e9/f3200a96f78e2f18e2c89a416f18a7/IP-0030.msh IP-0030.msh
+    ln -s /home/phemarajata/wf-assembly-snps-final/work/fc/299949f612f2387b032cbe01424d60/IP-0073.msh IP-0073.msh
+    ln -s /home/phemarajata/wf-assembly-snps-final/work/2c/d8b068714dc3b83744c659835a6408/IP-0022.msh IP-0022.msh
+    ln -s /home/phemarajata/wf-assembly-snps-final/work/08/cd55f8e13addf8bafafa143c60dd66/IP-0197.msh IP-0197.msh
+    ln -s /home/phemarajata/wf-assembly-snps-final/work/5d/231673e7edd26be08772f4dfc7c095/IP-0154.msh IP-0154.msh
+    ln -s /home/phemarajata/wf-assembly-snps-final/work/9b/d76d635fe92648f2e720449b8d5768/IP-0065.msh IP-0065.msh
+    ln -s /home/phemarajata/wf-assembly-snps-final/work/be/0121cef636314349c9579a58d4271f/IP-0170.msh IP-0170.msh
+    ln -s /home/phemarajata/wf-assembly-snps-final/work/b6/7dc3297c84b65ab5e478f5a7824f3e/ERS012363.msh ERS012363.msh
+    ln -s /home/phemarajata/wf-assembly-snps-final/work/4a/380401f5a8581ad2ae40fecf0eb605/GCF_014712835_1_Laos.msh GCF_014712835_1_Laos.msh
+    ln -s /home/phemarajata/wf-assembly-snps-final/work/86/4ea2bddf7298e2c0cea6909d7a8e05/IE-0019.msh IE-0019.msh
+    ln -s /home/phemarajata/wf-assembly-snps-final/work/94/038e5852b25ba64582db0d95af612c/IP-0006.msh IP-0006.msh
+    ln -s /home/phemarajata/wf-assembly-snps-final/work/a1/f2adb06b8ddce51304663f2f726c99/GCA_963568885_1.msh GCA_963568885_1.msh
+    ln -s /home/phemarajata/wf-assembly-snps-final/work/36/ebaf3252d8fd5d71e6391848864dcb/GCA_963560945_1.msh GCA_963560945_1.msh
+    ln -s /home/phemarajata/wf-assembly-snps-final/work/d8/69b1c2351ba318e52ce184d5ed6046/GCF_014712895_1_Laos.msh GCF_014712895_1_Laos.msh
+    ln -s /home/phemarajata/wf-assembly-snps-final/work/c0/aa4124260a2236a63b4400f55e00ba/IP-0138.msh IP-0138.msh
+    ln -s /home/phemarajata/wf-assembly-snps-final/work/b6/d50c5bd0d1d6cb35a13109a4d2fbf7/IP-0162.msh IP-0162.msh
+    ln -s /home/phemarajata/wf-assembly-snps-final/work/36/16211311123181497ac12ec8bb92e6/GCA_963564375_1.msh GCA_963564375_1.msh
+    ln -s /home/phemarajata/wf-assembly-snps-final/work/f6/901d257480971d6487c0b7a3d0b7d8/GCA_963570575_1.msh GCA_963570575_1.msh
+    ln -s /home/phemarajata/wf-assembly-snps-final/work/3e/208d1fabe2448cc4812d41a30a5ccc/IP-0081.msh IP-0081.msh
+    ln -s /home/phemarajata/wf-assembly-snps-final/work/bf/9b59a534a7a195c45f69f439016b92/IP-0126.msh IP-0126.msh
+    ln -s /home/phemarajata/wf-assembly-snps-final/work/f1/63aeea60dfaccc121264858a4b3c97/IE-0012.msh IE-0012.msh
+    ln -s /home/phemarajata/wf-assembly-snps-final/work/c2/ef9b37efcbb5e45abb9c06c505f233/IP-0169.msh IP-0169.msh
+    ln -s /home/phemarajata/wf-assembly-snps-final/work/f4/ea58ea9f0548f4027267983386fdbe/GCA_963561915_1.msh GCA_963561915_1.msh
+    ln -s /home/phemarajata/wf-assembly-snps-final/work/49/9efd5f00c7bb794d3a5976003d052d/IP-0118.msh IP-0118.msh
+    ln -s /home/phemarajata/wf-assembly-snps-final/work/2f/f7a1f6b1fcb216cbe11d41574e7ef7/GCA_963563065_1.msh GCA_963563065_1.msh
+    ln -s /home/phemarajata/wf-assembly-snps-final/work/33/563b0a263b9308fa16ebd0e3b25ffe/GCF_002110925_1_USA_Texas.msh GCF_002110925_1_USA_Texas.msh
+    ln -s /home/phemarajata/wf-assembly-snps-final/work/c9/83cf948e0b5d3084508611c0f45df8/IP-0190.msh IP-0190.msh
+    ln -s /home/phemarajata/wf-assembly-snps-final/work/1d/3ce2df9b2b77cb4945a1d3b1147f02/IP-0002.msh IP-0002.msh
+    ln -s /home/phemarajata/wf-assembly-snps-final/work/3c/a9c99cb5bff8185f7b72ecdf3fd518/IP-0045.msh IP-0045.msh
+    ln -s /home/phemarajata/wf-assembly-snps-final/work/f0/ee9f9bfba26c464fd6f8851f8a9af1/IP-0093.msh IP-0093.msh
+    ln -s /home/phemarajata/wf-assembly-snps-final/work/97/c15cc7f628b4e73f892e038739eb87/IP-0088.msh IP-0088.msh
+    ln -s /home/phemarajata/wf-assembly-snps-final/work/ae/0b5d655066aca85cb0bc887104dc1f/GCA_963571005_1.msh GCA_963571005_1.msh
+    ln -s /home/phemarajata/wf-assembly-snps-final/work/4d/27f8be4b04bc93bc99ae43aa8d3ecb/GCA_963563475_1.msh GCA_963563475_1.msh
+    ln -s /home/phemarajata/wf-assembly-snps-final/work/da/c4227b1ce2dd585baec744d6d9bd76/IP-0061.msh IP-0061.msh
+    ln -s /home/phemarajata/wf-assembly-snps-final/work/66/26f6d9b0a7eb0f1110fa74dbe4bfd9/IP-0185.msh IP-0185.msh
+    ln -s /home/phemarajata/wf-assembly-snps-final/work/a1/1e570610f90dff7fa702e6175d6279/GCF_001207785_2_Malaysia.msh GCF_001207785_2_Malaysia.msh
+    ln -s /home/phemarajata/wf-assembly-snps-final/work/a9/a89b060b2596f20d44e48d6fc551cf/IP-0142.msh IP-0142.msh
+    ln -s /home/phemarajata/wf-assembly-snps-final/work/ec/fd9e541efc89d0e9b7da91ba213009/GCA_963561975_1.msh GCA_963561975_1.msh
+    ln -s /home/phemarajata/wf-assembly-snps-final/work/71/d859108771d2b5998decb617f0faf8/IP-0111.msh IP-0111.msh
+    ln -s /home/phemarajata/wf-assembly-snps-final/work/df/39937eaf46d44c8dc1e9cca9b3d2d7/GCF_000773235_1_Australia.msh GCF_000773235_1_Australia.msh
+    ln -s /home/phemarajata/wf-assembly-snps-final/work/b3/e9f0a51a51e372683987e323e1ccbb/IP-0014.msh IP-0014.msh
+    ln -s /home/phemarajata/wf-assembly-snps-final/work/53/e9747388e81506e0639d54edb1e1fd/ERS012320.msh ERS012320.msh
+    ln -s /home/phemarajata/wf-assembly-snps-final/work/01/46fd5f119a225dfd2efd182b7fcb1c/IP-0057.msh IP-0057.msh
+    ln -s /home/phemarajata/wf-assembly-snps-final/work/d2/e3979561faef116145843470e87257/ERS012316.msh ERS012316.msh
+    ln -s /home/phemarajata/wf-assembly-snps-final/work/21/c9881fa6ba96b74cfbf3d8577b6430/GCF_009827035_1_Viet_Nam.msh GCF_009827035_1_Viet_Nam.msh
+    ln -s /home/phemarajata/wf-assembly-snps-final/work/9f/693bf4032d11a4145b745eaae250e1/IE-0015.msh IE-0015.msh
+    ln -s /home/phemarajata/wf-assembly-snps-final/work/9d/992a16ffeb4a669f1c98c924d251d3/ERS012332.msh ERS012332.msh
+    ln -s /home/phemarajata/wf-assembly-snps-final/work/9f/50c52402df3ca5c53fa3ea03248bf6/IP-0026.msh IP-0026.msh
+    ln -s /home/phemarajata/wf-assembly-snps-final/work/88/d8966191b544ae9a4ef2a0531e84e0/IP-0069.msh IP-0069.msh
+    ln -s /home/phemarajata/wf-assembly-snps-final/work/b2/e929cbfcf14b02032b651a9f73fb40/ERS012358.msh ERS012358.msh
+    ln -s /home/phemarajata/wf-assembly-snps-final/work/9d/5f871b091671c51a13b3e507178b19/IP-0174.msh IP-0174.msh
+    ln -s /home/phemarajata/wf-assembly-snps-final/work/83/bae134bcbf9624b34843e73752961a/IP-0131.msh IP-0131.msh
+    ln -s /home/phemarajata/wf-assembly-snps-final/work/2a/5340d095f0db47022a578a522aa847/IP-0114.msh IP-0114.msh
+    ln -s /home/phemarajata/wf-assembly-snps-final/work/51/d658c685f78cadb244b806519f11af/IP-0050.msh IP-0050.msh
+    ln -s /home/phemarajata/wf-assembly-snps-final/work/4f/d6d1adbc72c9a27ea9e0e73cd86efd/GCA_963566495_1.msh GCA_963566495_1.msh
+    ln -s /home/phemarajata/wf-assembly-snps-final/work/8f/1daed8272d451a4cb493faf66f2ce5/IP-0182.msh IP-0182.msh
+    ln -s /home/phemarajata/wf-assembly-snps-final/work/4e/c4df1c2ff343dc5e1e7a076cb5af02/IP-0157.msh IP-0157.msh
+    ln -s /home/phemarajata/wf-assembly-snps-final/work/18/23b08c7f301b61ba5a4f263bceec1d/IP-0165.msh IP-0165.msh
+    ln -s /home/phemarajata/wf-assembly-snps-final/work/0e/b895458d51fd2b9a2199c742b14803/IP-0033.msh IP-0033.msh
+    ln -s /home/phemarajata/wf-assembly-snps-final/work/56/790e416c122fe5a074855720fa927e/GCA_963563155_1.msh GCA_963563155_1.msh
+    ln -s /home/phemarajata/wf-assembly-snps-final/work/82/6140aec4367164c0137f96bcd6f402/IP-0122.msh IP-0122.msh
+    ln -s /home/phemarajata/wf-assembly-snps-final/work/6d/518c7ed019bf46bd820fe653d1f45e/IP-0029.msh IP-0029.msh
+    ln -s /home/phemarajata/wf-assembly-snps-final/work/f5/d48df02ddef901a879881d9d377c55/IP-0054.msh IP-0054.msh
+    ln -s /home/phemarajata/wf-assembly-snps-final/work/bf/a03fe25f34b638c53abdc3741269c2/IE-0004.msh IE-0004.msh
+    ln -s /home/phemarajata/wf-assembly-snps-final/work/10/f96c9a90e37ef692c338922a8d81b9/IP-0011.msh IP-0011.msh
+    ln -s /home/phemarajata/wf-assembly-snps-final/work/b9/b585f8e783bf081e02a23d31e47bae/GCA_963566085_1.msh GCA_963566085_1.msh
+    ln -s /home/phemarajata/wf-assembly-snps-final/work/11/38f555dfaca21f110a71109f15646c/IP-0037.msh IP-0037.msh
+    ln -s /home/phemarajata/wf-assembly-snps-final/work/ed/97e8b66388903e25b94bce2d1a1a61/GCA_963566635_1.msh GCA_963566635_1.msh
+    ln -s /home/phemarajata/wf-assembly-snps-final/work/ff/6761f0fbeea51fe3f81166c4208973/GCA_963564975_1.msh GCA_963564975_1.msh
+    ln -s /home/phemarajata/wf-assembly-snps-final/work/4e/11d946d059cf2183861190851a10cb/IP-0127.msh IP-0127.msh
+    ln -s /home/phemarajata/wf-assembly-snps-final/work/37/af1859760af0b751a84634059fbda2/IP-0041.msh IP-0041.msh
+    ln -s /home/phemarajata/wf-assembly-snps-final/work/76/7e7d460133bc56ebbe428f961a85b4/IP-0084.msh IP-0084.msh
+    ln -s /home/phemarajata/wf-assembly-snps-final/work/aa/4a6f6e153409bb2e355c4c237280ea/IP-0097.msh IP-0097.msh
+    ln -s /home/phemarajata/wf-assembly-snps-final/work/02/1fbe671a4be266d7a28508236ea4a9/IP-0193.msh IP-0193.msh
+    ln -s /home/phemarajata/wf-assembly-snps-final/work/8d/5e6d544e95e78d06af615264653d99/IP-0150.msh IP-0150.msh
+    ln -s /home/phemarajata/wf-assembly-snps-final/work/6f/3de2bfee20a39bed6da97e0638044f/IP-0103.msh IP-0103.msh
+    ln -s /home/phemarajata/wf-assembly-snps-final/work/0a/a57da4006d518463da26d5ecfe7590/ERS013364.msh ERS013364.msh
+    ln -s /home/phemarajata/wf-assembly-snps-final/work/83/f9f5a100348b341c127bc46284eb1b/IP-0189.msh IP-0189.msh
+    ln -s /home/phemarajata/wf-assembly-snps-final/work/44/ca4155360718137ca7876b753229c9/ERS012307.msh ERS012307.msh
+    ln -s /home/phemarajata/wf-assembly-snps-final/work/8b/6edcbda27ef47188d1fddb47559e8b/IP-0146.msh IP-0146.msh
+    ln -s /home/phemarajata/wf-assembly-snps-final/work/54/1bda2daa81b6343fd677359e19e721/GCA_963571475_1.msh GCA_963571475_1.msh
+    ln -s /home/phemarajata/wf-assembly-snps-final/work/b7/2d54fbc521b30daf15b431d52ca5dc/IP-0018.msh IP-0018.msh
+    ln -s /home/phemarajata/wf-assembly-snps-final/work/d3/c62173071f7069103309f4c0e73a57/IP-0005.msh IP-0005.msh
+    ln -s /home/phemarajata/wf-assembly-snps-final/work/66/67b75a801f069709d5df3471354e2f/IP-0048.msh IP-0048.msh
+    ln -s /home/phemarajata/wf-assembly-snps-final/work/a1/ae0d65ff6d641221f98a7302c0f2ae/IP-0013.msh IP-0013.msh
+    ln -s /home/phemarajata/wf-assembly-snps-final/work/61/fc280def18371f7339bf7cbfdb0325/IP-0129.msh IP-0129.msh
+    ln -s /home/phemarajata/wf-assembly-snps-final/work/f2/e580f4e3e1254b5f79523494e51813/IP-0090.msh IP-0090.msh
+    ln -s /home/phemarajata/wf-assembly-snps-final/work/04/6687331b18faa98aa5f221faafc3e6/IP-0145.msh IP-0145.msh
+    ln -s /home/phemarajata/wf-assembly-snps-final/work/95/88d31029ae2d5943aa744aa4b49ce6/IP-0102.msh IP-0102.msh
+    ln -s /home/phemarajata/wf-assembly-snps-final/work/e9/1b30718c3298ad9c4351eed0e3b579/IP-0099.msh IP-0099.msh
+    ln -s /home/phemarajata/wf-assembly-snps-final/work/08/02bbd5966db0ec35c6087aca079e79/ERS012362.msh ERS012362.msh
+    ln -s /home/phemarajata/wf-assembly-snps-final/work/69/8a918734427be58bddcf6a66baccfc/IP-0188.msh IP-0188.msh
+    ln -s /home/phemarajata/wf-assembly-snps-final/work/4d/fe6de58ca3237ec37a57924b541be4/IP-0056.msh IP-0056.msh
+    ln -s /home/phemarajata/wf-assembly-snps-final/work/43/de646448609099c3e2df7bc3722753/GCA_963562655_1.msh GCA_963562655_1.msh
+    ln -s /home/phemarajata/wf-assembly-snps-final/work/ef/f79e9d0691488b8d9f89d8c5917f4d/IP-0082.msh IP-0082.msh
+    ln -s /home/phemarajata/wf-assembly-snps-final/work/a4/87bd729c16774fa008d0411450104b/IP-0072.msh IP-0072.msh
+    ln -s /home/phemarajata/wf-assembly-snps-final/work/2b/b09109d9c27b8d0b29a4886e5d930d/IE-0003.msh IE-0003.msh
+    ln -s /home/phemarajata/wf-assembly-snps-final/work/61/686f9e0fca55636d9344028b197bb5/IP-0038.msh IP-0038.msh
+    ln -s /home/phemarajata/wf-assembly-snps-final/work/0a/95d8f6bc53bc43811bb0f9e9947932/IP-0135.msh IP-0135.msh
+    ln -s /home/phemarajata/wf-assembly-snps-final/work/5f/b82847e8e40db456fe9780348f776e/IP-0007.msh IP-0007.msh
+    ln -s /home/phemarajata/wf-assembly-snps-final/work/aa/e856df60441795cb9ed56684f6aa4b/IP-0161.msh IP-0161.msh
+    ln -s /home/phemarajata/wf-assembly-snps-final/work/65/2667675accd5a45db42b4e4dfcdb5a/IP-0178.msh IP-0178.msh
+    ln -s /home/phemarajata/wf-assembly-snps-final/work/d6/e27acffd3658b78fd781f916e692a8/IP-0139.msh IP-0139.msh
+    ln -s /home/phemarajata/wf-assembly-snps-final/work/ea/70a6bbe01d4bfe1bfec32912862dcd/GCA_963563525_1.msh GCA_963563525_1.msh
+    ln -s /home/phemarajata/wf-assembly-snps-final/work/47/b86cd4a9b015d2ad99c05da5ab00c1/IP-0062.msh IP-0062.msh
+    ln -s /home/phemarajata/wf-assembly-snps-final/work/7a/8c7dface0e26224cabf48476bce1bb/IP-0130.msh IP-0130.msh
+    ln -s /home/phemarajata/wf-assembly-snps-final/work/a7/35a090082be1ce54b0474b7561241d/IP-0076.msh IP-0076.msh
+    ln -s /home/phemarajata/wf-assembly-snps-final/work/ee/cf90d53444d1a89e23a8d3b8f779e7/IP-0112.msh IP-0112.msh
+    ln -s /home/phemarajata/wf-assembly-snps-final/work/02/646fa0a6ba2b807d3e84adfe8e6d2e/IP-0173.msh IP-0173.msh
+    ln -s /home/phemarajata/wf-assembly-snps-final/work/6e/5f11b175e347dcdd6ec765f43fb037/IP-0149.msh IP-0149.msh
+    ln -s /home/phemarajata/wf-assembly-snps-final/work/2e/fa732a42f025a115746761544e5d9e/IP-0106.msh IP-0106.msh
+    ln -s /home/phemarajata/wf-assembly-snps-final/work/87/1b5a4adb7b61d8b345c41d91c563bd/IP-0155.msh IP-0155.msh
+    ln -s /home/phemarajata/wf-assembly-snps-final/work/22/503806b5a2eaa0709d8b1083ad8125/IE-0013.msh IE-0013.msh
+    ln -s /home/phemarajata/wf-assembly-snps-final/work/7c/e0122791a13b88efcebfa456bc8e85/IP-0141.msh IP-0141.msh
+    ln -s /home/phemarajata/wf-assembly-snps-final/work/a9/5f401e03cbafe40b13c61da4ba2f59/GCA_963563635_1.msh GCA_963563635_1.msh
+    ln -s /home/phemarajata/wf-assembly-snps-final/work/3a/9adb4401f28606b83e3b6821063b76/IP-0087.msh IP-0087.msh
+    ln -s /home/phemarajata/wf-assembly-snps-final/work/b7/f6437004a5cdff2501b59f937d68b8/IP-0001.msh IP-0001.msh
+    ln -s /home/phemarajata/wf-assembly-snps-final/work/ad/873c04cd37184902ff21f569ef5fc9/IP-0044.msh IP-0044.msh
+    ln -s /home/phemarajata/wf-assembly-snps-final/work/a6/9aaeb08ae7b9acbad75d599277dcf5/GCF_002111145_1_USA_Arizona_ex_Costa_Rica.msh GCF_002111145_1_USA_Arizona_ex_Costa_Rica.msh
+    ln -s /home/phemarajata/wf-assembly-snps-final/work/71/a9eba9d93d5864b5c288a295536bb7/GCA_963565485_1.msh GCA_963565485_1.msh
+    ln -s /home/phemarajata/wf-assembly-snps-final/work/2d/4b8d02a953af37e006e5e1b19127fe/GCA_963565565_1.msh GCA_963565565_1.msh
+    ln -s /home/phemarajata/wf-assembly-snps-final/work/f3/f36610da3c58c703a3c7c9f3b1eff3/IP-0107.msh IP-0107.msh
+    ln -s /home/phemarajata/wf-assembly-snps-final/work/2a/77c9eacbd4f8fbde450a9963bb0aa4/GCA_963573225_1.msh GCA_963573225_1.msh
+    ln -s /home/phemarajata/wf-assembly-snps-final/work/3f/6af26b3b61e3c7d95db6a9e8b9923b/GCF_000774495_1_Australia.msh GCF_000774495_1_Australia.msh
+    ln -s /home/phemarajata/wf-assembly-snps-final/work/7f/c58bfab621e51dc000d1332c2621cc/IP-0140.msh IP-0140.msh
+    ln -s /home/phemarajata/wf-assembly-snps-final/work/67/206e060cd0bd9ee1512b062802e3e1/IP-0183.msh IP-0183.msh
+    ln -s /home/phemarajata/wf-assembly-snps-final/work/ad/89494e475b3a3a7b6e40231c9a1618/IP-0166.msh IP-0166.msh
+    ln -s /home/phemarajata/wf-assembly-snps-final/work/ba/148efd5bda77df64782fb4096839ab/IP-0123.msh IP-0123.msh
+    ln -s /home/phemarajata/wf-assembly-snps-final/work/e0/adfc4c86bf94c98772081a2ffc0e01/GCF_003268105_1_Viet_Nam.msh GCF_003268105_1_Viet_Nam.msh
+    ln -s /home/phemarajata/wf-assembly-snps-final/work/44/e53e3c4dbba649dfc4d495e72f8fb4/IP-0028.msh IP-0028.msh
+    ln -s /home/phemarajata/wf-assembly-snps-final/work/b0/8d34adf3661d20f2f297f38132727b/IE-0024.msh IE-0024.msh
+    ln -s /home/phemarajata/wf-assembly-snps-final/work/d1/fb71540d8977f90d3c8b9a01709cb2/IP-0034.msh IP-0034.msh
+    ln -s /home/phemarajata/wf-assembly-snps-final/work/e7/6fa5e00646ae8256ad28c266cc89e5/IP-0117.msh IP-0117.msh
+    ln -s /home/phemarajata/wf-assembly-snps-final/work/e5/22cd76d2cb369819a5c97db86e091a/IP-0077.msh IP-0077.msh
+    ln -s /home/phemarajata/wf-assembly-snps-final/work/5f/8c117aef994ec3ca5f5109829d2937/IP-0094.msh IP-0094.msh
+    ln -s /home/phemarajata/wf-assembly-snps-final/work/60/406bff2a9cf39bc92df25bcc64580d/IP-0051.msh IP-0051.msh
+    ln -s /home/phemarajata/wf-assembly-snps-final/work/ad/f4be311d70ec6de60625a03e79a616/GCA_963569325_1.msh GCA_963569325_1.msh
+    ln -s /home/phemarajata/wf-assembly-snps-final/work/26/391e29ed3f1d4f6baca33647236458/GCA_963571975_1.msh GCA_963571975_1.msh
+    ln -s /home/phemarajata/wf-assembly-snps-final/work/b9/3cd1f30c8ab5529eb5d6d91b70f6d1/IP-0202.msh IP-0202.msh
+    ln -s /home/phemarajata/wf-assembly-snps-final/work/66/8d7d29c866d148ec6ee074b03f12d5/IE-0007.msh IE-0007.msh
+    ln -s /home/phemarajata/wf-assembly-snps-final/work/f8/20f7788ff14ef67cded1648b2e7b70/IP-0151.msh IP-0151.msh
+    ln -s /home/phemarajata/wf-assembly-snps-final/work/fb/6d06c92b53f5c8e78c04b3cf9b2a09/GCA_963565015_1.msh GCA_963565015_1.msh
+    ln -s /home/phemarajata/wf-assembly-snps-final/work/61/5d60062b1d708691ba95274f543f26/GCF_003268075_1_Viet_Nam.msh GCF_003268075_1_Viet_Nam.msh
+    ln -s /home/phemarajata/wf-assembly-snps-final/work/b2/6a438a1e2de62f5a0e26367ca6114e/IP-0194.msh IP-0194.msh
+    ln -s /home/phemarajata/wf-assembly-snps-final/work/69/16049a42a880b54283cc77952ec0a3/ERS013352.msh ERS013352.msh
+    ln -s /home/phemarajata/wf-assembly-snps-final/work/2c/0d769ca34807a2fdd8a28ed7c01ec6/IP-0177.msh IP-0177.msh
+    ln -s /home/phemarajata/wf-assembly-snps-final/work/61/5ad13e685817904405873af3b3c444/IP-0134.msh IP-0134.msh
+    ln -s /home/phemarajata/wf-assembly-snps-final/work/8f/3839fbbf7407e7f0821ad1c0d81645/GCA_963561835_1.msh GCA_963561835_1.msh
+    ln -s /home/phemarajata/wf-assembly-snps-final/work/d3/4309b32615bf141ead2b7bb3ab7605/GCA_963565125_1.msh GCA_963565125_1.msh
+    ln -s /home/phemarajata/wf-assembly-snps-final/work/3a/15528158f81b745be07189f4b8d352/ERS012306.msh ERS012306.msh
+    ln -s /home/phemarajata/wf-assembly-snps-final/work/91/405f92c948063e1b9cd88983281017/IP-0017.msh IP-0017.msh
+    ln -s /home/phemarajata/wf-assembly-snps-final/work/3c/caccb2db9c4c0c6837b13aa9a42979/IP-0066.msh IP-0066.msh
+    ln -s /home/phemarajata/wf-assembly-snps-final/work/db/1e41f7fd75773d7c6ed8fccc25277f/IP-0049.msh IP-0049.msh
+    ln -s /home/phemarajata/wf-assembly-snps-final/work/8c/6b9df800eb106da43106599b7f21ef/ERS012312.msh ERS012312.msh
+    ln -s /home/phemarajata/wf-assembly-snps-final/work/49/f699e41c788676dfcc8e96a25c1faf/GCF_014712775_1_Laos.msh GCF_014712775_1_Laos.msh
+    ln -s /home/phemarajata/wf-assembly-snps-final/work/d4/255253c00c3bd79c360122ca4b1822/GCA_963566765_1.msh GCA_963566765_1.msh
+    ln -s /home/phemarajata/wf-assembly-snps-final/work/48/e2fb277ae0b9a15f2f286768dbedad/IP-0023.msh IP-0023.msh
+    ln -s /home/phemarajata/wf-assembly-snps-final/work/cd/5f4771d33d248ca081eb1f607d0d3a/GCA_963563715_1.msh GCA_963563715_1.msh
+    ln -s /home/phemarajata/wf-assembly-snps-final/work/93/bbd7b6b6a387760de009aa8c8192c9/IP-0128.msh IP-0128.msh
+    ln -s /home/phemarajata/wf-assembly-snps-final/work/f2/10f23e72cecb0c324a0f68458ac6c1/IE-0018.msh IE-0018.msh
+    ln -s /home/phemarajata/wf-assembly-snps-final/work/bf/b9500132443a0b2fb5dd1013659db5/IP-0040.msh IP-0040.msh
+    ln -s /home/phemarajata/wf-assembly-snps-final/work/02/4f9824b846e5fd102b60e0b791fda6/ERS013346.msh ERS013346.msh
+    ln -s /home/phemarajata/wf-assembly-snps-final/work/44/9a7cd2ad8734187dcc345b68119e6c/IP-0083.msh IP-0083.msh
+}
+
+nxf_unstage_outputs() {
+    true
+}
+
+nxf_unstage_controls() {
+    true
+}
+
+nxf_unstage() {
+    if [[ ${nxf_main_ret:=0} == 0 ]]; then
+        (set -e -o pipefail; (nxf_unstage_outputs | tee -a .command.out) 3>&1 1>&2 2>&3 | tee -a .command.err)
+        nxf_unstage_ret=$?
+    fi
+    nxf_unstage_controls
+}
+
+nxf_main() {
+    trap on_exit EXIT
+    trap on_term TERM INT USR2
+    trap '' USR1
+
+    [[ "${NXF_CHDIR:-}" ]] && cd "$NXF_CHDIR"
+    export NXF_BOXID="nxf-$(dd bs=18 count=1 if=/dev/urandom 2>/dev/null | base64 | tr +/ 0A | tr -d '\r\n')"
+    NXF_SCRATCH=''
+    [[ $NXF_DEBUG > 0 ]] && nxf_env
+    touch /home/phemarajata/wf-assembly-snps-final/work/b8/63c797a6282269bc31b9f2ecd2d17f/.command.begin
+    set +u
+    set -u
+    [[ $NXF_SCRATCH ]] && cd $NXF_SCRATCH
+    export NXF_TASK_WORKDIR="$PWD"
+    nxf_stage
+
+    set +e
+    (set -o pipefail; (nxf_launch | tee .command.out) 3>&1 1>&2 2>&3 | tee .command.err) &
+    pid=$!
+    wait $pid || nxf_main_ret=$?
+    nxf_unstage
+}
+
+$NXF_ENTRY

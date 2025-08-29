@@ -1,0 +1,51 @@
+Input file contents:
+IP-0181	IP-0181.fasta
+IP-0182	IP-0182.fasta
+IP-0183	IP-0183.fasta
+IP-0184	IP-0184.fasta
+IP-0185	IP-0185.fasta
+IP-0186	IP-0186.fasta
+IP-0187	IP-0187.fasta
+IP-0188	IP-0188.fasta
+IP-0189	IP-0189.fasta
+IP-0190	IP-0190.fasta
+IP-0191	IP-0191.fasta
+IP-0192	IP-0192.fasta
+IP-0193	IP-0193.fasta
+IP-0194	IP-0194.fasta
+IP-0195	IP-0195.fasta
+IP-0196	IP-0196.fasta
+IP-0197	IP-0197.fasta
+IP-0199	IP-0199.fasta
+IP-0200	IP-0200.fasta
+IP-0201	IP-0201.fasta
+IP-0202	IP-0202.fasta
+SRR12527885_contigs	SRR12527885_contigs.fasta
+Checking file existence:
+Found: IP-0181.fasta
+Found: IP-0182.fasta
+Found: IP-0183.fasta
+Found: IP-0184.fasta
+Found: IP-0185.fasta
+Found: IP-0186.fasta
+Found: IP-0187.fasta
+Found: IP-0188.fasta
+Found: IP-0189.fasta
+Found: IP-0190.fasta
+Found: IP-0191.fasta
+Found: IP-0192.fasta
+Found: IP-0193.fasta
+Found: IP-0194.fasta
+Found: IP-0195.fasta
+Found: IP-0196.fasta
+Found: IP-0197.fasta
+Found: IP-0199.fasta
+Found: IP-0200.fasta
+Found: IP-0201.fasta
+Found: IP-0202.fasta
+Found: SRR12527885_contigs.fasta
+SKA: Split K-mer Analysis (the alignment-free aligner)
+SKA done in 25s
+⬛⬜⬛⬜⬛⬜⬛
+⬜⬛⬜⬛⬜⬛⬜
+/home/phemarajata/wf-assembly-snps-final/work/7b/d862b16d657c991f23f5281d6c56f7/.command.sh: line 58: warning: here-document at line 55 delimited by end-of-file (wanted `END_VERSIONS')

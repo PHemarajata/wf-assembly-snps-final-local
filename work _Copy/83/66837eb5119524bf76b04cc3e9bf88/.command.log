@@ -1,0 +1,117 @@
+Unable to find image 'quay.io/biocontainers/ska2:0.3.7--h4349ce8_2' locally
+0.3.7--h4349ce8_2: Pulling from biocontainers/ska2
+0cacab098358: Already exists
+bd9ddc54bea9: Already exists
+0e7473e12183: Pulling fs layer
+0e7473e12183: Verifying Checksum
+0e7473e12183: Download complete
+0e7473e12183: Pull complete
+Digest: sha256:0e0e67586b7e2e83835c8754b6875ca823a69f8fd87f093ff9396fff8a9e4cc6
+Status: Downloaded newer image for quay.io/biocontainers/ska2:0.3.7--h4349ce8_2
+Input file contents:
+IE-0003	IE-0003.fasta
+IE-0004	IE-0004.fasta
+IE-0005	IE-0005.fasta
+IE-0006	IE-0006.fasta
+IE-0007	IE-0007.fasta
+IE-0009	IE-0009.fasta
+IE-0010	IE-0010.fasta
+IE-0011	IE-0011.fasta
+IE-0012	IE-0012.fasta
+IE-0013	IE-0013.fasta
+IE-0014	IE-0014.fasta
+IE-0015	IE-0015.fasta
+IE-0016	IE-0016.fasta
+IE-0017	IE-0017.fasta
+IE-0018	IE-0018.fasta
+IE-0019	IE-0019.fasta
+IE-0021	IE-0021.fasta
+IE-0022	IE-0022.fasta
+IE-0024	IE-0024.fasta
+IE-0026	IE-0026.fasta
+IP-0001	IP-0001.fasta
+IP-0002	IP-0002.fasta
+IP-0003	IP-0003.fasta
+IP-0004	IP-0004.fasta
+IP-0005	IP-0005.fasta
+IP-0006	IP-0006.fasta
+IP-0007	IP-0007.fasta
+IP-0008	IP-0008.fasta
+IP-0009	IP-0009.fasta
+IP-0010	IP-0010.fasta
+IP-0011	IP-0011.fasta
+IP-0012	IP-0012.fasta
+IP-0013	IP-0013.fasta
+IP-0014	IP-0014.fasta
+IP-0015	IP-0015.fasta
+IP-0016	IP-0016.fasta
+IP-0017	IP-0017.fasta
+IP-0018	IP-0018.fasta
+IP-0019	IP-0019.fasta
+IP-0020	IP-0020.fasta
+IP-0021	IP-0021.fasta
+IP-0022	IP-0022.fasta
+IP-0023	IP-0023.fasta
+IP-0024	IP-0024.fasta
+IP-0025	IP-0025.fasta
+IP-0026	IP-0026.fasta
+IP-0027	IP-0027.fasta
+IP-0028	IP-0028.fasta
+IP-0029	IP-0029.fasta
+IP-0030	IP-0030.fasta
+Checking file existence:
+Found: IE-0003.fasta
+Found: IE-0004.fasta
+Found: IE-0005.fasta
+Found: IE-0006.fasta
+Found: IE-0007.fasta
+Found: IE-0009.fasta
+Found: IE-0010.fasta
+Found: IE-0011.fasta
+Found: IE-0012.fasta
+Found: IE-0013.fasta
+Found: IE-0014.fasta
+Found: IE-0015.fasta
+Found: IE-0016.fasta
+Found: IE-0017.fasta
+Found: IE-0018.fasta
+Found: IE-0019.fasta
+Found: IE-0021.fasta
+Found: IE-0022.fasta
+Found: IE-0024.fasta
+Found: IE-0026.fasta
+Found: IP-0001.fasta
+Found: IP-0002.fasta
+Found: IP-0003.fasta
+Found: IP-0004.fasta
+Found: IP-0005.fasta
+Found: IP-0006.fasta
+Found: IP-0007.fasta
+Found: IP-0008.fasta
+Found: IP-0009.fasta
+Found: IP-0010.fasta
+Found: IP-0011.fasta
+Found: IP-0012.fasta
+Found: IP-0013.fasta
+Found: IP-0014.fasta
+Found: IP-0015.fasta
+Found: IP-0016.fasta
+Found: IP-0017.fasta
+Found: IP-0018.fasta
+Found: IP-0019.fasta
+Found: IP-0020.fasta
+Found: IP-0021.fasta
+Found: IP-0022.fasta
+Found: IP-0023.fasta
+Found: IP-0024.fasta
+Found: IP-0025.fasta
+Found: IP-0026.fasta
+Found: IP-0027.fasta
+Found: IP-0028.fasta
+Found: IP-0029.fasta
+Found: IP-0030.fasta
+SKA: Split K-mer Analysis (the alignment-free aligner)
+SKA done in 36s
+⬛⬜⬛⬜⬛⬜⬛
+⬜⬛⬜⬛⬜⬛⬜
+/home/phemarajata/wf-assembly-snps-final/work/83/66837eb5119524bf76b04cc3e9bf88/.command.sh: line 86: warning: here-document at line 83 delimited by end-of-file (wanted `END_VERSIONS')

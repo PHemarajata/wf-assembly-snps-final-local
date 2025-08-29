@@ -1,0 +1,452 @@
+#!/bin/bash
+### ---
+### name: 'ASSEMBLY_SNPS_SCALABLE:CLUSTERED_SNP_TREE:SKA_BUILD (cluster_cluster_2)'
+### container: 'quay.io/biocontainers/ska2:0.3.7--h4349ce8_2'
+### outputs:
+### - 'cluster_2.skf'
+### - 'versions.yml'
+### ...
+set -e
+set -u
+NXF_DEBUG=${NXF_DEBUG:=0}; [[ $NXF_DEBUG > 1 ]] && set -x
+NXF_ENTRY=${1:-nxf_main}
+
+nxf_tree() {
+    local pid=$1
+
+    declare -a ALL_CHILDREN
+    while read P PP;do
+        ALL_CHILDREN[$PP]+=" $P"
+    done < <(ps -e -o pid= -o ppid=)
+
+    pstat() {
+        local x_pid=$1
+        local STATUS=$(2> /dev/null < /proc/$1/status grep -E 'Vm|ctxt')
+
+        if [ $? = 0 ]; then
+        local  x_vsz=$(echo "$STATUS" | grep VmSize | awk '{print $2}' || echo -n '0')
+        local  x_rss=$(echo "$STATUS" | grep VmRSS | awk '{print $2}' || echo -n '0')
+        local x_peak=$(echo "$STATUS" | grep -E 'VmPeak|VmHWM' | sed 's/^.*:\s*//' | sed 's/[\sa-zA-Z]*$//' | tr '\n' ' ' || echo -n '0 0')
+        local x_pmem=$(awk -v rss=$x_rss -v mem_tot=$mem_tot 'BEGIN {printf "%.0f", rss/mem_tot*100*10}' || echo -n '0')
+        local vol_ctxt=$(echo "$STATUS" | grep '\bvoluntary_ctxt_switches' | awk '{print $2}' || echo -n '0')
+        local inv_ctxt=$(echo "$STATUS" | grep '\bnonvoluntary_ctxt_switches' | awk '{print $2}' || echo -n '0')
+        cpu_stat[x_pid]="$x_pid $x_pmem $x_vsz $x_rss $x_peak $vol_ctxt $inv_ctxt"
+        fi
+    }
+
+    pwalk() {
+        pstat $1
+        for i in ${ALL_CHILDREN[$1]:=}; do pwalk $i; done
+    }
+
+    pwalk $1
+}
+
+nxf_stat() {
+    cpu_stat=()
+    nxf_tree $1
+
+    declare -a sum=(0 0 0 0 0 0 0 0)
+    local pid
+    local i
+    for pid in "${!cpu_stat[@]}"; do
+        local row=(${cpu_stat[pid]})
+        [ $NXF_DEBUG = 1 ] && echo "++ stat mem=${row[*]}"
+        for i in "${!row[@]}"; do
+        if [ $i != 0 ]; then
+            sum[i]=$((sum[i]+row[i]))
+        fi
+        done
+    done
+
+    [ $NXF_DEBUG = 1 ] && echo -e "++ stat SUM=${sum[*]}"
+
+    for i in {1..7}; do
+        if [ ${sum[i]} -lt ${cpu_peak[i]} ]; then
+            sum[i]=${cpu_peak[i]}
+        else
+            cpu_peak[i]=${sum[i]}
+        fi
+    done
+
+    [ $NXF_DEBUG = 1 ] && echo -e "++ stat PEAK=${sum[*]}\n"
+    nxf_stat_ret=(${sum[*]})
+}
+
+nxf_mem_watch() {
+    set -o pipefail
+    local pid=$1
+    local trace_file=.command.trace
+    local count=0;
+    declare -a cpu_stat=(0 0 0 0 0 0 0 0)
+    declare -a cpu_peak=(0 0 0 0 0 0 0 0)
+    local mem_tot=$(< /proc/meminfo grep MemTotal | awk '{print $2}')
+    local timeout
+    local DONE
+    local STOP=''
+
+    [ $NXF_DEBUG = 1 ] && nxf_sleep 0.2 && ps fx
+
+    while true; do
+        nxf_stat $pid
+        if [ $count -lt 10 ]; then timeout=1;
+        elif [ $count -lt 120 ]; then timeout=5;
+        else timeout=30;
+        fi
+        read -t $timeout -r DONE || true
+        [[ $DONE ]] && break
+        if [ ! -e /proc/$pid ]; then
+            [ ! $STOP ] && STOP=$(nxf_date)
+            [ $(($(nxf_date)-STOP)) -gt 10000 ] && break
+        fi
+        count=$((count+1))
+    done
+
+    printf "%s\n" \
+        "%mem=${nxf_stat_ret[1]}" \
+        "vmem=${nxf_stat_ret[2]}" \
+        "rss=${nxf_stat_ret[3]}" \
+        "peak_vmem=${nxf_stat_ret[4]}" \
+        "peak_rss=${nxf_stat_ret[5]}" \
+        "vol_ctxt=${nxf_stat_ret[6]}" \
+        "inv_ctxt=${nxf_stat_ret[7]}" >> "$trace_file" || >&2 echo "Error: Failed to append to file: $trace_file"
+}
+
+nxf_write_trace() {
+    printf "%s\n" \
+        "nextflow.trace/v2" \
+        "realtime=$wall_time" \
+        "%cpu=$ucpu" \
+        "cpu_model=$cpu_model" \
+        "rchar=${io_stat1[0]}" \
+        "wchar=${io_stat1[1]}" \
+        "syscr=${io_stat1[2]}" \
+        "syscw=${io_stat1[3]}" \
+        "read_bytes=${io_stat1[4]}" \
+        "write_bytes=${io_stat1[5]}" >| "$trace_file" || >&2 echo "Error: Failed to write to file: $trace_file"
+}
+
+nxf_trace_mac() {
+    local start_millis=$(nxf_date)
+
+    /bin/bash -euo pipefail /home/phemarajata/wf-assembly-snps-final/work/83/66837eb5119524bf76b04cc3e9bf88/.command.sh
+
+    local end_millis=$(nxf_date)
+    local wall_time=$((end_millis-start_millis))
+    local ucpu=''
+    local cpu_model=''
+    local io_stat1=('' '' '' '' '' '')
+    nxf_write_trace
+}
+
+nxf_fd() {
+    local FD=11
+    while [ -e /proc/$$/fd/$FD ]; do FD=$((FD+1)); done
+    echo $FD
+}
+
+nxf_trace_linux() {
+    local pid=$$
+    command -v ps &>/dev/null || { >&2 echo "Command 'ps' required by nextflow to collect task metrics cannot be found"; exit 1; }
+    local num_cpus=$(< /proc/cpuinfo grep '^processor' -c)
+    local cpu_model=$(< /proc/cpuinfo grep '^model name' | head -n 1 | awk 'BEGIN{FS="\t: "} { print $2 }')
+    local tot_time0=$(grep '^cpu ' /proc/stat | awk '{sum=$2+$3+$4+$5+$6+$7+$8+$9; printf "%.0f",sum}')
+    local cpu_time0=$(2> /dev/null < /proc/$pid/stat awk '{printf "%.0f", ($16+$17)*10 }' || echo -n 'X')
+    local io_stat0=($(2> /dev/null < /proc/$pid/io sed 's/^.*:\s*//' | head -n 6 | tr '\n' ' ' || echo -n '0 0 0 0 0 0'))
+    local start_millis=$(nxf_date)
+    trap 'kill $mem_proc' ERR
+    
+    /bin/bash -euo pipefail /home/phemarajata/wf-assembly-snps-final/work/83/66837eb5119524bf76b04cc3e9bf88/.command.sh &
+    local task=$!
+
+    mem_fd=$(nxf_fd)
+    eval "exec $mem_fd> >(nxf_mem_watch $task)"
+    local mem_proc=$!
+
+    wait $task
+
+    local end_millis=$(nxf_date)
+    local tot_time1=$(grep '^cpu ' /proc/stat | awk '{sum=$2+$3+$4+$5+$6+$7+$8+$9; printf "%.0f",sum}')
+    local cpu_time1=$(2> /dev/null < /proc/$pid/stat awk '{printf "%.0f", ($16+$17)*10 }' || echo -n 'X')
+    local ucpu=$(awk -v p1=$cpu_time1 -v p0=$cpu_time0 -v t1=$tot_time1 -v t0=$tot_time0 -v n=$num_cpus 'BEGIN { pct=(p1-p0)/(t1-t0)*100*n; printf("%.0f", pct>0 ? pct : 0) }' )
+
+    local io_stat1=($(2> /dev/null < /proc/$pid/io sed 's/^.*:\s*//' | head -n 6 | tr '\n' ' ' || echo -n '0 0 0 0 0 0'))
+    local i
+    for i in {0..5}; do
+        io_stat1[i]=$((io_stat1[i]-io_stat0[i]))
+    done
+
+    local wall_time=$((end_millis-start_millis))
+    [ $NXF_DEBUG = 1 ] && echo "+++ STATS %CPU=$ucpu TIME=$wall_time I/O=${io_stat1[*]}"
+
+    printf "%s\n" \
+        "nextflow.trace/v2" \
+        "realtime=$wall_time" \
+        "%cpu=$ucpu" \
+        "cpu_model=$cpu_model" \
+        "rchar=${io_stat1[0]}" \
+        "wchar=${io_stat1[1]}" \
+        "syscr=${io_stat1[2]}" \
+        "syscw=${io_stat1[3]}" \
+        "read_bytes=${io_stat1[4]}" \
+        "write_bytes=${io_stat1[5]}" >| "$trace_file" || >&2 echo "Error: Failed to write to file: $trace_file"
+
+    [ -e /proc/$mem_proc ] && eval "echo 'DONE' >&$mem_fd" || true
+    wait $mem_proc 2>/dev/null || true
+    while [ -e /proc/$mem_proc ]; do nxf_sleep 0.1; done
+}
+
+nxf_trace() {
+    local trace_file=.command.trace
+    touch $trace_file
+    if [[ $(uname) = Darwin ]]; then
+        nxf_trace_mac
+    else
+        nxf_trace_linux
+    fi
+}
+nxf_container_env() {
+cat << EOF
+export PYTHONNOUSERSITE="1"
+export R_PROFILE_USER="/.Rprofile"
+export R_ENVIRON_USER="/.Renviron"
+export JULIA_DEPOT_PATH="/usr/local/share/julia"
+export PATH="\$PATH:/home/phemarajata/wf-assembly-snps-final/bin"
+EOF
+}
+
+nxf_sleep() {
+  sleep $1 2>/dev/null || sleep 1;
+}
+
+nxf_date() {
+    local ts=$(date +%s%3N);
+    if [[ ${#ts} == 10 ]]; then echo ${ts}000
+    elif [[ $ts == *%3N ]]; then echo ${ts/\%3N/000}
+    elif [[ $ts == *3N ]]; then echo ${ts/3N/000}
+    elif [[ ${#ts} == 13 ]]; then echo $ts
+    else echo "Unexpected timestamp value: $ts"; exit 1
+    fi
+}
+
+nxf_env() {
+    echo '============= task environment ============='
+    env | sort | sed "s/\(.*\)AWS\(.*\)=\(.\{6\}\).*/\1AWS\2=\3xxxxxxxxxxxxx/"
+    echo '============= task output =================='
+}
+
+nxf_kill() {
+    declare -a children
+    while read P PP;do
+        children[$PP]+=" $P"
+    done < <(ps -e -o pid= -o ppid=)
+
+    kill_all() {
+        [[ $1 != $$ ]] && kill $1 2>/dev/null || true
+        for i in ${children[$1]:=}; do kill_all $i; done
+    }
+
+    kill_all $1
+}
+
+nxf_mktemp() {
+    local base=${1:-/tmp}
+    mkdir -p "$base"
+    if [[ $(uname) = Darwin ]]; then mktemp -d $base/nxf.XXXXXXXXXX
+    else TMPDIR="$base" mktemp -d -t nxf.XXXXXXXXXX
+    fi
+}
+
+nxf_fs_copy() {
+  local source=$1
+  local target=$2
+  local basedir=$(dirname $1)
+  mkdir -p $target/$basedir
+  cp -fRL $source $target/$basedir
+}
+
+nxf_fs_move() {
+  local source=$1
+  local target=$2
+  local basedir=$(dirname $1)
+  mkdir -p $target/$basedir
+  mv -f $source $target/$basedir
+}
+
+nxf_fs_rsync() {
+  rsync -rRl $1 $2
+}
+
+nxf_fs_rclone() {
+  rclone copyto $1 $2/$1
+}
+
+nxf_fs_fcp() {
+  fcp $1 $2/$1
+}
+
+on_exit() {
+    local last_err=$?
+    local exit_status=${nxf_main_ret:=0}
+    [[ ${exit_status} -eq 0 && ${nxf_unstage_ret:=0} -ne 0 ]] && exit_status=${nxf_unstage_ret:=0}
+    [[ ${exit_status} -eq 0 && ${last_err} -ne 0 ]] && exit_status=${last_err}
+    printf -- $exit_status > /home/phemarajata/wf-assembly-snps-final/work/83/66837eb5119524bf76b04cc3e9bf88/.exitcode
+    set +u
+    docker rm $NXF_BOXID &>/dev/null || true
+    exit $exit_status
+}
+
+on_term() {
+    set +e
+    docker stop $NXF_BOXID
+}
+
+nxf_launch() {
+    docker run -i --cpu-shares 2048 --memory 4096m -e "NXF_TASK_WORKDIR" -e "NXF_DEBUG=${NXF_DEBUG:=0}" -v /home/phemarajata/wf-assembly-snps-final:/home/phemarajata/wf-assembly-snps-final -w "$NXF_TASK_WORKDIR" --name $NXF_BOXID quay.io/biocontainers/ska2:0.3.7--h4349ce8_2 /bin/bash -c "eval $(nxf_container_env); /bin/bash -euo pipefail /home/phemarajata/wf-assembly-snps-final/work/83/66837eb5119524bf76b04cc3e9bf88/.command.run nxf_trace"
+}
+
+nxf_stage() {
+    true
+    # stage input files
+    rm -f IE-0018.fasta
+    rm -f IE-0021.fasta
+    rm -f IE-0011.fasta
+    rm -f IP-0008.fasta
+    rm -f IP-0024.fasta
+    rm -f IP-0018.fasta
+    rm -f IP-0028.fasta
+    rm -f IE-0005.fasta
+    rm -f IE-0015.fasta
+    rm -f IP-0005.fasta
+    rm -f IP-0015.fasta
+    rm -f IP-0025.fasta
+    rm -f IE-0019.fasta
+    rm -f IP-0020.fasta
+    rm -f IE-0007.fasta
+    rm -f IP-0017.fasta
+    rm -f IE-0012.fasta
+    rm -f IP-0023.fasta
+    rm -f IP-0029.fasta
+    rm -f IP-0009.fasta
+    rm -f IP-0014.fasta
+    rm -f IE-0004.fasta
+    rm -f IE-0024.fasta
+    rm -f IP-0011.fasta
+    rm -f IP-0016.fasta
+    rm -f IP-0006.fasta
+    rm -f IP-0026.fasta
+    rm -f IE-0003.fasta
+    rm -f IE-0013.fasta
+    rm -f IE-0016.fasta
+    rm -f IE-0026.fasta
+    rm -f IP-0003.fasta
+    rm -f IP-0002.fasta
+    rm -f IP-0012.fasta
+    rm -f IP-0022.fasta
+    rm -f IE-0010.fasta
+    rm -f IE-0009.fasta
+    rm -f IE-0022.fasta
+    rm -f IP-0010.fasta
+    rm -f IP-0007.fasta
+    rm -f IP-0030.fasta
+    rm -f IE-0017.fasta
+    rm -f IP-0027.fasta
+    rm -f IE-0006.fasta
+    rm -f IP-0013.fasta
+    rm -f IP-0019.fasta
+    rm -f IP-0004.fasta
+    rm -f IE-0014.fasta
+    rm -f IP-0021.fasta
+    rm -f IP-0001.fasta
+    ln -s /home/phemarajata/wf-assembly-snps-final/work/a4/768b9eacc238f7431970b206b26886/inputfiles/IE-0018.fasta IE-0018.fasta
+    ln -s /home/phemarajata/wf-assembly-snps-final/work/00/1504327d62954ee4e5c6568e7a8077/inputfiles/IE-0021.fasta IE-0021.fasta
+    ln -s /home/phemarajata/wf-assembly-snps-final/work/82/67db6e76c32688a4ac6f1dfe2cca67/inputfiles/IE-0011.fasta IE-0011.fasta
+    ln -s /home/phemarajata/wf-assembly-snps-final/work/a9/755513f4cac7d858e8024b9b3dfdfe/inputfiles/IP-0008.fasta IP-0008.fasta
+    ln -s /home/phemarajata/wf-assembly-snps-final/work/a0/e95ddb657690e77607a8d6d65644fa/inputfiles/IP-0024.fasta IP-0024.fasta
+    ln -s /home/phemarajata/wf-assembly-snps-final/work/97/32351b717e0342e2f4f852c3834428/inputfiles/IP-0018.fasta IP-0018.fasta
+    ln -s /home/phemarajata/wf-assembly-snps-final/work/60/7d938b24e79cb9e90218c8db886761/inputfiles/IP-0028.fasta IP-0028.fasta
+    ln -s /home/phemarajata/wf-assembly-snps-final/work/34/43da968177f478ed3b2011019b7d90/inputfiles/IE-0005.fasta IE-0005.fasta
+    ln -s /home/phemarajata/wf-assembly-snps-final/work/32/5b03ead850b254ea414ea9fefddbd4/inputfiles/IE-0015.fasta IE-0015.fasta
+    ln -s /home/phemarajata/wf-assembly-snps-final/work/9a/ab6d9e55b0fd1d968641e39680e3ab/inputfiles/IP-0005.fasta IP-0005.fasta
+    ln -s /home/phemarajata/wf-assembly-snps-final/work/c0/21cabc3a7e70f6c578644f0819872a/inputfiles/IP-0015.fasta IP-0015.fasta
+    ln -s /home/phemarajata/wf-assembly-snps-final/work/ac/db704f275d4f733f5554b8114a2b02/inputfiles/IP-0025.fasta IP-0025.fasta
+    ln -s /home/phemarajata/wf-assembly-snps-final/work/69/1c81593ad4a24849e6d63138089635/inputfiles/IE-0019.fasta IE-0019.fasta
+    ln -s /home/phemarajata/wf-assembly-snps-final/work/72/8259d238d0c325dd6507760d700094/inputfiles/IP-0020.fasta IP-0020.fasta
+    ln -s /home/phemarajata/wf-assembly-snps-final/work/b2/3b1882e5cf6b45c93fb37d6be6c99d/inputfiles/IE-0007.fasta IE-0007.fasta
+    ln -s /home/phemarajata/wf-assembly-snps-final/work/dc/c178e953fe007914fa4a1e8309570b/inputfiles/IP-0017.fasta IP-0017.fasta
+    ln -s /home/phemarajata/wf-assembly-snps-final/work/b4/474ee495247292fd160ac469ed1e5c/inputfiles/IE-0012.fasta IE-0012.fasta
+    ln -s /home/phemarajata/wf-assembly-snps-final/work/26/a431612a79b0c8607a45a63d5b0ede/inputfiles/IP-0023.fasta IP-0023.fasta
+    ln -s /home/phemarajata/wf-assembly-snps-final/work/41/0a96a3aa4519bf425b5c1e0ff1c577/inputfiles/IP-0029.fasta IP-0029.fasta
+    ln -s /home/phemarajata/wf-assembly-snps-final/work/bd/9b5d6852f74d46eb80e800ddbb16c4/inputfiles/IP-0009.fasta IP-0009.fasta
+    ln -s /home/phemarajata/wf-assembly-snps-final/work/6e/6f78516605e8b22d8d44d737c4ba4a/inputfiles/IP-0014.fasta IP-0014.fasta
+    ln -s /home/phemarajata/wf-assembly-snps-final/work/db/b293b16fed42b085c0ae63bc0ee925/inputfiles/IE-0004.fasta IE-0004.fasta
+    ln -s /home/phemarajata/wf-assembly-snps-final/work/f9/71a1cbb863723b2a29ce514e47a4ef/inputfiles/IE-0024.fasta IE-0024.fasta
+    ln -s /home/phemarajata/wf-assembly-snps-final/work/a2/e4f9b334524ba909c88c21ff650309/inputfiles/IP-0011.fasta IP-0011.fasta
+    ln -s /home/phemarajata/wf-assembly-snps-final/work/88/994dcece68479e1eb3dc275824b9d2/inputfiles/IP-0016.fasta IP-0016.fasta
+    ln -s /home/phemarajata/wf-assembly-snps-final/work/7a/cd4b27c3c5d2fc97b2570886b12a2d/inputfiles/IP-0006.fasta IP-0006.fasta
+    ln -s /home/phemarajata/wf-assembly-snps-final/work/60/3f51589191739c8d87f62efbfa7142/inputfiles/IP-0026.fasta IP-0026.fasta
+    ln -s /home/phemarajata/wf-assembly-snps-final/work/35/af488d4124e41edd1a27ca0d151a39/inputfiles/IE-0003.fasta IE-0003.fasta
+    ln -s /home/phemarajata/wf-assembly-snps-final/work/72/d812cecc93675fd485caeb9e797aea/inputfiles/IE-0013.fasta IE-0013.fasta
+    ln -s /home/phemarajata/wf-assembly-snps-final/work/e8/f79b1e66f5cd11bc0a7dfeaa9a2b95/inputfiles/IE-0016.fasta IE-0016.fasta
+    ln -s /home/phemarajata/wf-assembly-snps-final/work/bc/4620183af26840135834bd137cca77/inputfiles/IE-0026.fasta IE-0026.fasta
+    ln -s /home/phemarajata/wf-assembly-snps-final/work/de/626072cf8fc7e96f223e28d9ef0705/inputfiles/IP-0003.fasta IP-0003.fasta
+    ln -s /home/phemarajata/wf-assembly-snps-final/work/69/53c8eb81b53c4f21c785058ded94bb/inputfiles/IP-0002.fasta IP-0002.fasta
+    ln -s /home/phemarajata/wf-assembly-snps-final/work/81/f504d68e6239f0f3dbc9a70f93dee0/inputfiles/IP-0012.fasta IP-0012.fasta
+    ln -s /home/phemarajata/wf-assembly-snps-final/work/81/8491d413410e649d294f36eac06488/inputfiles/IP-0022.fasta IP-0022.fasta
+    ln -s /home/phemarajata/wf-assembly-snps-final/work/fe/4a85a088e1d05d4741a3d837d6784e/inputfiles/IE-0010.fasta IE-0010.fasta
+    ln -s /home/phemarajata/wf-assembly-snps-final/work/d3/1346cfb5f75447c2dcf532dab0c230/inputfiles/IE-0009.fasta IE-0009.fasta
+    ln -s /home/phemarajata/wf-assembly-snps-final/work/ee/f37c504affb4b39eccb8bac14e82ea/inputfiles/IE-0022.fasta IE-0022.fasta
+    ln -s /home/phemarajata/wf-assembly-snps-final/work/ca/468c138066115661ff97ba1b22d1ef/inputfiles/IP-0010.fasta IP-0010.fasta
+    ln -s /home/phemarajata/wf-assembly-snps-final/work/fa/d5f252e3848919ca466c74d44e6953/inputfiles/IP-0007.fasta IP-0007.fasta
+    ln -s /home/phemarajata/wf-assembly-snps-final/work/fe/ec6f66eb13ca978ec0146a184bcf83/inputfiles/IP-0030.fasta IP-0030.fasta
+    ln -s /home/phemarajata/wf-assembly-snps-final/work/3d/826a04b76d3c48659c61f6746d4ed5/inputfiles/IE-0017.fasta IE-0017.fasta
+    ln -s /home/phemarajata/wf-assembly-snps-final/work/7a/f592e4d8307f7268d1a6892dbe66b2/inputfiles/IP-0027.fasta IP-0027.fasta
+    ln -s /home/phemarajata/wf-assembly-snps-final/work/1c/d3dc409dd5e95dfafee3df909a3a6d/inputfiles/IE-0006.fasta IE-0006.fasta
+    ln -s /home/phemarajata/wf-assembly-snps-final/work/15/9dc46df68e54373cfe58584f543f02/inputfiles/IP-0013.fasta IP-0013.fasta
+    ln -s /home/phemarajata/wf-assembly-snps-final/work/78/230cc07f89769485d8ed5551c13d96/inputfiles/IP-0019.fasta IP-0019.fasta
+    ln -s /home/phemarajata/wf-assembly-snps-final/work/ad/6f2abfd257f39f183b7ea6d652b9b0/inputfiles/IP-0004.fasta IP-0004.fasta
+    ln -s /home/phemarajata/wf-assembly-snps-final/work/5e/5a5fee98967af790dd4a6ea5aa2113/inputfiles/IE-0014.fasta IE-0014.fasta
+    ln -s /home/phemarajata/wf-assembly-snps-final/work/67/0dd8170b93709516157b6453c265ad/inputfiles/IP-0021.fasta IP-0021.fasta
+    ln -s /home/phemarajata/wf-assembly-snps-final/work/89/5688747f51ccccfe483c8f588cc331/inputfiles/IP-0001.fasta IP-0001.fasta
+}
+
+nxf_unstage_outputs() {
+    true
+}
+
+nxf_unstage_controls() {
+    true
+}
+
+nxf_unstage() {
+    if [[ ${nxf_main_ret:=0} == 0 ]]; then
+        (set -e -o pipefail; (nxf_unstage_outputs | tee -a .command.out) 3>&1 1>&2 2>&3 | tee -a .command.err)
+        nxf_unstage_ret=$?
+    fi
+    nxf_unstage_controls
+}
+
+nxf_main() {
+    trap on_exit EXIT
+    trap on_term TERM INT USR2
+    trap '' USR1
+
+    [[ "${NXF_CHDIR:-}" ]] && cd "$NXF_CHDIR"
+    export NXF_BOXID="nxf-$(dd bs=18 count=1 if=/dev/urandom 2>/dev/null | base64 | tr +/ 0A | tr -d '\r\n')"
+    NXF_SCRATCH=''
+    [[ $NXF_DEBUG > 0 ]] && nxf_env
+    touch /home/phemarajata/wf-assembly-snps-final/work/83/66837eb5119524bf76b04cc3e9bf88/.command.begin
+    set +u
+    set -u
+    [[ $NXF_SCRATCH ]] && cd $NXF_SCRATCH
+    export NXF_TASK_WORKDIR="$PWD"
+    nxf_stage
+
+    set +e
+    (set -o pipefail; (nxf_launch | tee .command.out) 3>&1 1>&2 2>&3 | tee .command.err) &
+    pid=$!
+    wait $pid || nxf_main_ret=$?
+    nxf_unstage
+}
+
+$NXF_ENTRY

@@ -1,0 +1,116 @@
+Unable to find image 'quay.io/biocontainers/ska2:0.3.7--h4349ce8_2' locally
+0.3.7--h4349ce8_2: Pulling from biocontainers/ska2
+0cacab098358: Already exists
+bd9ddc54bea9: Already exists
+0e7473e12183: Pulling fs layer
+0e7473e12183: Download complete
+0e7473e12183: Pull complete
+Digest: sha256:0e0e67586b7e2e83835c8754b6875ca823a69f8fd87f093ff9396fff8a9e4cc6
+Status: Downloaded newer image for quay.io/biocontainers/ska2:0.3.7--h4349ce8_2
+Input file contents:
+GCA_963565485_1	GCA_963565485_1.fasta
+GCA_963565565_1	GCA_963565565_1.fasta
+GCA_963566085_1	GCA_963566085_1.fasta
+GCA_963566175_1	GCA_963566175_1.fasta
+GCA_963566475_1	GCA_963566475_1.fasta
+GCA_963566495_1	GCA_963566495_1.fasta
+GCA_963566625_1	GCA_963566625_1.fasta
+GCA_963566635_1	GCA_963566635_1.fasta
+GCA_963566695_1	GCA_963566695_1.fasta
+GCA_963566765_1	GCA_963566765_1.fasta
+GCA_963566855_1	GCA_963566855_1.fasta
+GCA_963567325_1	GCA_963567325_1.fasta
+GCA_963567935_1	GCA_963567935_1.fasta
+GCA_963568055_1	GCA_963568055_1.fasta
+GCA_963568705_1	GCA_963568705_1.fasta
+GCA_963568785_1	GCA_963568785_1.fasta
+GCA_963568885_1	GCA_963568885_1.fasta
+GCA_963569325_1	GCA_963569325_1.fasta
+GCA_963569365_1	GCA_963569365_1.fasta
+GCA_963569645_1	GCA_963569645_1.fasta
+GCA_963569685_1	GCA_963569685_1.fasta
+GCA_963569795_1	GCA_963569795_1.fasta
+GCA_963570025_1	GCA_963570025_1.fasta
+GCA_963570105_1	GCA_963570105_1.fasta
+GCA_963570575_1	GCA_963570575_1.fasta
+GCA_963571005_1	GCA_963571005_1.fasta
+GCA_963571055_1	GCA_963571055_1.fasta
+GCA_963571475_1	GCA_963571475_1.fasta
+GCA_963571975_1	GCA_963571975_1.fasta
+GCA_963572615_1	GCA_963572615_1.fasta
+GCA_963573095_1	GCA_963573095_1.fasta
+GCA_963573225_1	GCA_963573225_1.fasta
+GCF_000773235_1_Australia	GCF_000773235_1_Australia.fasta
+GCF_000774495_1_Australia	GCF_000774495_1_Australia.fasta
+GCF_001207785_2_Malaysia	GCF_001207785_2_Malaysia.fasta
+GCF_002110925_1_USA_Texas	GCF_002110925_1_USA_Texas.fasta
+GCF_002110985_1_USA_Puerto_Rico	GCF_002110985_1_USA_Puerto_Rico.fasta
+GCF_002111145_1_USA_Arizona_ex_Costa_Rica	GCF_002111145_1_USA_Arizona_ex_Costa_Rica.fasta
+GCF_003268075_1_Viet_Nam	GCF_003268075_1_Viet_Nam.fasta
+GCF_003268105_1_Viet_Nam	GCF_003268105_1_Viet_Nam.fasta
+GCF_009827035_1_Viet_Nam	GCF_009827035_1_Viet_Nam.fasta
+GCF_014712775_1_Laos	GCF_014712775_1_Laos.fasta
+GCF_014712835_1_Laos	GCF_014712835_1_Laos.fasta
+GCF_014712895_1_Laos	GCF_014712895_1_Laos.fasta
+GCF_014712915_1_Laos	GCF_014712915_1_Laos.fasta
+GCF_014712935_1_Laos	GCF_014712935_1_Laos.fasta
+GCF_014712955_1_Laos	GCF_014712955_1_Laos.fasta
+GCF_014713085_1_Laos	GCF_014713085_1_Laos.fasta
+GCF_025847905_1_Viet_Nam	GCF_025847905_1_Viet_Nam.fasta
+IE-0001	IE-0001.fasta
+Checking file existence:
+Found: GCA_963565485_1.fasta
+Found: GCA_963565565_1.fasta
+Found: GCA_963566085_1.fasta
+Found: GCA_963566175_1.fasta
+Found: GCA_963566475_1.fasta
+Found: GCA_963566495_1.fasta
+Found: GCA_963566625_1.fasta
+Found: GCA_963566635_1.fasta
+Found: GCA_963566695_1.fasta
+Found: GCA_963566765_1.fasta
+Found: GCA_963566855_1.fasta
+Found: GCA_963567325_1.fasta
+Found: GCA_963567935_1.fasta
+Found: GCA_963568055_1.fasta
+Found: GCA_963568705_1.fasta
+Found: GCA_963568785_1.fasta
+Found: GCA_963568885_1.fasta
+Found: GCA_963569325_1.fasta
+Found: GCA_963569365_1.fasta
+Found: GCA_963569645_1.fasta
+Found: GCA_963569685_1.fasta
+Found: GCA_963569795_1.fasta
+Found: GCA_963570025_1.fasta
+Found: GCA_963570105_1.fasta
+Found: GCA_963570575_1.fasta
+Found: GCA_963571005_1.fasta
+Found: GCA_963571055_1.fasta
+Found: GCA_963571475_1.fasta
+Found: GCA_963571975_1.fasta
+Found: GCA_963572615_1.fasta
+Found: GCA_963573095_1.fasta
+Found: GCA_963573225_1.fasta
+Found: GCF_000773235_1_Australia.fasta
+Found: GCF_000774495_1_Australia.fasta
+Found: GCF_001207785_2_Malaysia.fasta
+Found: GCF_002110925_1_USA_Texas.fasta
+Found: GCF_002110985_1_USA_Puerto_Rico.fasta
+Found: GCF_002111145_1_USA_Arizona_ex_Costa_Rica.fasta
+Found: GCF_003268075_1_Viet_Nam.fasta
+Found: GCF_003268105_1_Viet_Nam.fasta
+Found: GCF_009827035_1_Viet_Nam.fasta
+Found: GCF_014712775_1_Laos.fasta
+Found: GCF_014712835_1_Laos.fasta
+Found: GCF_014712895_1_Laos.fasta
+Found: GCF_014712915_1_Laos.fasta
+Found: GCF_014712935_1_Laos.fasta
+Found: GCF_014712955_1_Laos.fasta
+Found: GCF_014713085_1_Laos.fasta
+Found: GCF_025847905_1_Viet_Nam.fasta
+Found: IE-0001.fasta
+SKA: Split K-mer Analysis (the alignment-free aligner)
+SKA done in 37s
+⬛⬜⬛⬜⬛⬜⬛
+⬜⬛⬜⬛⬜⬛⬜
+/home/phemarajata/wf-assembly-snps-final/work/af/d19030faac8af95be93ef16ae7e8a9/.command.sh: line 86: warning: here-document at line 83 delimited by end-of-file (wanted `END_VERSIONS')

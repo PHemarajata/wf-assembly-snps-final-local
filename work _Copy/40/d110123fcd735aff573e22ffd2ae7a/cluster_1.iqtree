@@ -1,0 +1,259 @@
+IQ-TREE 2.2.6 COVID-edition built Dec  8 2023
+
+Input file name: cluster_1.aln.fa
+Type of analysis: ModelFinder + tree reconstruction
+Random seed number: 537346
+
+REFERENCES
+----------
+
+To cite IQ-TREE please use:
+
+Bui Quang Minh, Heiko A. Schmidt, Olga Chernomor, Dominik Schrempf,
+Michael D. Woodhams, Arndt von Haeseler, and Robert Lanfear (2020)
+IQ-TREE 2: New models and efficient methods for phylogenetic inference
+in the genomic era. Mol. Biol. Evol., in press.
+https://doi.org/10.1093/molbev/msaa015
+
+To cite ModelFinder please use: 
+
+Subha Kalyaanamoorthy, Bui Quang Minh, Thomas KF Wong, Arndt von Haeseler,
+and Lars S Jermiin (2017) ModelFinder: Fast model selection for
+accurate phylogenetic estimates. Nature Methods, 14:587–589.
+https://doi.org/10.1038/nmeth.4285
+
+SEQUENCE ALIGNMENT
+------------------
+
+Input data: 50 sequences with 893078 nucleotide sites
+Number of constant sites: 821229 (= 91.9549% of all sites)
+Number of invariant (constant or ambiguous constant) sites: 821229 (= 91.9549% of all sites)
+Number of parsimony informative sites: 46469
+Number of distinct site patterns: 187874
+
+ModelFinder
+-----------
+
+Best-fit model according to BIC: TVM+F+I+R3
+
+List of models sorted by BIC scores: 
+
+Model                  LogL         AIC      w-AIC        AICc     w-AICc         BIC      w-BIC
+TVM+F+I+R3      -1801347.711 3602913.422 +    0.125 3602913.449 +    0.125 3604188.987 +     0.98
+GTR+F+I+R3      -1801344.769 3602909.538 +    0.875 3602909.565 +    0.875 3604196.805 -   0.0197
+K3Pu+F+I+R3     -1801404.919 3603023.838 - 1.32e-25 3603023.864 - 1.32e-25 3604275.998 - 1.25e-19
+TIM+F+I+R3      -1801401.836 3603019.672 - 1.06e-24 3603019.698 - 1.06e-24 3604283.534 - 2.89e-21
+TPM3u+F+I+R3    -1801963.752 3604141.504 - 2.65e-268 3604141.530 - 2.66e-268 3605393.664 - 2.51e-262
+TIM3+F+I+R3     -1801960.875 3604137.750 - 1.73e-267 3604137.776 - 1.73e-267 3605401.612 - 4.71e-264
+TPM2u+F+I+R3    -1801979.321 3604172.642 - 4.59e-275 3604172.668 - 4.6e-275 3605424.802 - 4.34e-269
+HKY+F+I+R3      -1801988.261 3604188.522 - 1.64e-278 3604188.547 - 1.64e-278 3605428.979 - 5.38e-270
+TIM2+F+I+R3     -1801976.078 3604168.156 - 4.33e-274 3604168.182 - 4.33e-274 3605432.018 - 1.18e-270
+TN+F+I+R3       -1801985.174 3604184.348 - 1.32e-277 3604184.374 - 1.32e-277 3605436.508 - 1.25e-271
+GTR+F+I+R4      -1817898.704 3636021.408 -        0 3636021.436 -        0 3637332.080 -        0
+GTR+F+I+R2      -1822801.984 3645819.968 -        0 3645819.994 -        0 3647083.830 -        0
+SYM+I+R3        -1859681.548 3719577.096 -        0 3719577.122 -        0 3720829.256 -        0
+TVMe+I+R3       -1859692.331 3719596.662 -        0 3719596.687 -        0 3720837.119 -        0
+TIM2e+I+R3      -1861073.190 3722356.380 -        0 3722356.405 -        0 3723585.135 -        0
+TPM2+I+R3       -1861093.558 3722395.116 -        0 3722395.140 -        0 3723612.169 -        0
+TPM3+I+R3       -1861120.603 3722449.206 -        0 3722449.230 -        0 3723666.259 -        0
+TIM3e+I+R3      -1861116.911 3722443.822 -        0 3722443.847 -        0 3723672.577 -        0
+TIMe+I+R3       -1862009.371 3724228.742 -        0 3724228.767 -        0 3725457.497 -        0
+K3P+I+R3        -1862019.536 3724247.072 -        0 3724247.096 -        0 3725464.125 -        0
+TNe+I+R3        -1862020.127 3724248.254 -        0 3724248.278 -        0 3725465.307 -        0
+K2P+I+R3        -1862030.961 3724267.922 -        0 3724267.946 -        0 3725473.272 -        0
+F81+F+I+R3      -1918228.252 3836666.504 -        0 3836666.529 -        0 3837895.259 -        0
+JC+I+R3         -1961330.087 3922864.174 -        0 3922864.198 -        0 3924057.822 -        0
+GTR+F+I+G4      -2379418.704 4759051.408 -        0 4759051.434 -        0 4760303.568 -        0
+GTR+F+R2        -2384634.386 4769482.772 -        0 4769482.798 -        0 4770734.932 -        0
+GTR+F+I         -2418110.365 4836432.730 -        0 4836432.755 -        0 4837673.187 -        0
+GTR+F+R3        -2440578.288 4881374.576 -        0 4881374.603 -        0 4882650.141 -        0
+GTR+F+G4        -2487526.903 4975265.806 -        0 4975265.831 -        0 4976506.263 -        0
+GTR+F           -2770655.965 5541521.930 -        0 5541521.955 -        0 5542750.685 -        0
+
+AIC, w-AIC   : Akaike information criterion scores and weights.
+AICc, w-AICc : Corrected AIC scores and weights.
+BIC, w-BIC   : Bayesian information criterion scores and weights.
+
+Plus signs denote the 95% confidence sets.
+Minus signs denote significant exclusion.
+
+SUBSTITUTION PROCESS
+--------------------
+
+Model of substitution: TVM+F+I+R3
+
+Rate parameter R:
+
+  A-C: 0.9715
+  A-G: 7.8371
+  A-T: 0.5812
+  C-G: 0.7145
+  C-T: 7.8371
+  G-T: 1.0000
+
+State frequencies: (empirical counts from alignment)
+
+  pi(A) = 0.1606
+  pi(C) = 0.3375
+  pi(G) = 0.3477
+  pi(T) = 0.1542
+
+Rate matrix Q:
+
+  A    -1.496    0.1561     1.297   0.04267
+  C   0.07431    -0.768    0.1183    0.5754
+  G    0.5994    0.1148   -0.7877   0.07342
+  T   0.04445      1.26    0.1656     -1.47
+
+Model of rate heterogeneity: Invar+FreeRate with 3 categories
+Proportion of invariable sites: 0.9195
+Site proportion and rates:  (0.1666,0.01219) (0.7654,0.2202) (0.06807,12.19)
+
+ Category  Relative_rate  Proportion
+  0         0              0.9195
+  1         0.01219        0.1666
+  2         0.2202         0.7654
+  3         12.19          0.06807
+
+MAXIMUM LIKELIHOOD TREE
+-----------------------
+
+Log-likelihood of the tree: -1801347.7092 (s.e. 4957.4009)
+Unconstrained log-likelihood (without tree): -7739815.0906
+Number of free parameters (#branches + #model parameters): 109
+Akaike information criterion (AIC) score: 3602913.4183
+Corrected Akaike information criterion (AICc) score: 3602913.4452
+Bayesian information criterion (BIC) score: 3604188.9831
+
+Total tree length (sum of branch lengths): 0.5516
+Sum of internal branch lengths: 0.2392 (43.3713% of tree length)
+
+NOTE: Tree is UNROOTED although outgroup taxon 'GCA_963565485_1' is drawn at root
+
++--GCA_963565485_1
+|
+|                                                   +--GCA_963565565_1
+|                                                +--|
+|                                                |  +--GCA_963566635_1
+|                                            +---|
+|                                            |   |     +--GCA_963566175_1
+|                                            |   +-----|
+|                                            |         +--GCA_963568785_1
+|                                         +--|
+|                                         |  |     +--GCA_963566625_1
+|                                         |  |  +--|
+|                                         |  |  |  +--GCA_963571005_1
+|                                         |  +--|
+|                                         |     +--GCA_963570575_1
+|                                      +--|
+|                                      |  |  +--GCA_963566695_1
+|                                      |  +--|
+|                                      |     +----GCA_963571475_1
+|                            +---------|
+|                            |         +---GCA_963569325_1
+|                         +--|
+|                         |  +-----------GCA_963573095_1
+|                      +--|
+|                      |  |               +--GCA_963566085_1
+|                      |  |     +---------|
+|                      |  |     |         +--GCA_963569685_1
+|                      |  |  +--|
+|                      |  |  |  |           +--GCA_963566495_1
+|                      |  |  |  +-----------|
+|                      |  |  |              +--GCA_963569795_1
+|                      |  +--|
+|                      |     |     +------------GCA_963566765_1
+|                      |     |  +--|
+|                      |     |  |  |     +---------GCA_963567935_1
+|                      |     |  |  |  +--|
+|                      |     |  |  |  |  |    +----GCA_963570105_1
+|                      |     |  |  |  |  +----|
+|                      |     |  |  |  |       +----GCF_014712775_1_Laos
+|                      |     |  |  +--|
+|                      |     |  |     +------------GCF_025847905_1_Viet_Nam
+|                      |     +--|
+|                      |        |               +--GCA_963568055_1
+|                      |        |     +---------|
+|                      |        |     |         +--GCA_963568885_1
+|                      |        |  +--|
+|                      |        |  |  |  +--------GCA_963569645_1
+|                      |        |  |  +--|
+|                      |        |  |     |       +**GCF_014712915_1_Laos
+|                      |        |  |     +-------|
+|                      |        |  |             +--GCF_014712935_1_Laos
+|                      |        +--|
+|                      |           |           +--GCA_963568705_1
+|                      |           |  +--------|
+|                      |           |  |        +--GCA_963572615_1
+|                      |           +--|
+|                      |              |            +--GCF_003268075_1_Viet_Nam
+|                      |              |         +--|
+|                      |              |         |  +--GCF_009827035_1_Viet_Nam
+|                      |              |  +------|
+|                      |              |  |      +--GCF_003268105_1_Viet_Nam
+|                      |              +--|
+|                      |                 |          +**GCF_014712835_1_Laos
+|                      |                 +----------|
+|                      |                            +--GCF_014712895_1_Laos
+|               +------|
+|               |      |             +-----------GCA_963566855_1
+|               |      |        +----|
+|               |      |        |    +----------GCF_014712955_1_Laos
+|               |      |     +--|
+|               |      |     |  +--------------GCF_014713085_1_Laos
+|               |      |  +--|
+|               |      |  |  |       +-------------------------GCF_000773235_1_Australia
+|               |      |  |  |  +----|
+|               |      |  |  |  |    +---------------------------GCF_000774495_1_Australia
+|               |      |  |  +--|
+|               |      |  |     |                  +----GCF_002110925_1_USA_Texas
+|               |      |  |     |               +--|
+|               |      |  |     |               |  +----GCF_002110985_1_USA_Puerto_Rico
+|               |      |  |     +---------------|
+|               |      |  |                     +---GCF_002111145_1_USA_Arizona_ex_Costa_Rica
+|               |      +--|
+|               |         +--------------GCA_963573225_1
+|        +------|
+|        |      +-----------IE-0001
+|     +--|
+|     |  +---GCF_001207785_2_Malaysia
+|  +--|
+|  |  +----GCA_963567325_1
++--|
+|  +--GCA_963569365_1
+|
+|     +--GCA_963566475_1
+|  +--|
+|  |  +--GCA_963570025_1
++--|
+   |  +--GCA_963571055_1
+   +--|
+      +--GCA_963571975_1
+
+Tree in newick format:
+
+(GCA_963565485_1:0.0017787308,((((((((((((GCA_963565565_1:0.0000274025,GCA_963566635_1:0.0000170725):0.0042656554,(GCA_963566175_1:0.0008727084,GCA_963568785_1:0.0000738007):0.0072116256):0.0056743269,((GCA_963566625_1:0.0031218378,GCA_963571005_1:0.0001300626):0.0006579704,GCA_963570575_1:0.0043471341):0.0043884362):0.0016424717,(GCA_963566695_1:0.0042592826,GCA_963571475_1:0.0062673109):0.0028678978):0.0029585345,GCA_963569325_1:0.0058812026):0.0127919624,GCA_963573095_1:0.0150646211):0.0041474286,(((GCA_963566085_1:0.0045036170,GCA_963569685_1:0.0033910363):0.0128215920,(GCA_963566495_1:0.0000193632,GCA_963569795_1:0.0000332839):0.0147496097):0.0029890228,((GCA_963566765_1:0.0156640702,((GCA_963567935_1:0.0126689787,(GCA_963570105_1:0.0066694726,GCF_014712775_1_Laos:0.0060503930):0.0066302065):0.0031122408,GCF_025847905_1_Viet_Nam:0.0158772732):0.0026066855):0.0018468677,(((GCA_963568055_1:0.0010543139,GCA_963568885_1:0.0012876921):0.0125414474,(GCA_963569645_1:0.0109107735,(GCF_014712915_1_Laos:0.0000001540,GCF_014712935_1_Laos:0.0000114725):0.0099449228):0.0033723726):0.0021918888,((GCA_963568705_1:0.0000229942,GCA_963572615_1:0.0000387747):0.0109205020,(((GCF_003268075_1_Viet_Nam:0.0000174620,GCF_009827035_1_Viet_Nam:0.0000495458):0.0000055960,GCF_003268105_1_Viet_Nam:0.0000163563):0.0089938121,(GCF_014712835_1_Laos:0.0000001120,GCF_014712895_1_Laos:0.0000019163):0.0139731835):0.0035754058):0.0035099426):0.0016671469):0.0021959339):0.0029130251):0.0024919918,((((GCA_963566855_1:0.0145855535,GCF_014712955_1_Laos:0.0138590968):0.0068457415,GCF_014713085_1_Laos:0.0188925562):0.0035164100,((GCF_000773235_1_Australia:0.0321865900,GCF_000774495_1_Australia:0.0345237331):0.0059872709,((GCF_002110925_1_USA_Texas:0.0068557174,GCF_002110985_1_USA_Puerto_Rico:0.0067746587):0.0017654640,GCF_002111145_1_USA_Arizona_ex_Costa_Rica:0.0050242297):0.0197251026):0.0022052705):0.0046634703,GCA_963573225_1:0.0185924554):0.0025178645):0.0095512552,IE-0001:0.0146616342):0.0087862503,GCF_001207785_2_Malaysia:0.0052467718):0.0027138141,GCA_963567325_1:0.0065154281):0.0006392025,GCA_963569365_1:0.0028101532):0.0002406452,((GCA_963566475_1:0.0029539327,GCA_963570025_1:0.0022954539):0.0001029910,(GCA_963571055_1:0.0022483673,GCA_963571975_1:0.0042004813):0.0002773184):0.0000329103);
+
+ALISIM COMMAND
+--------------
+To simulate an alignment of the same length as the original alignment, using the tree and model parameters estimated from this analysis, you can use the following command:
+
+--alisim simulated_MSA -t cluster_1.treefile -m "TVM{0.971509,7.83713,0.581214,0.714472}+F{0.16062,0.337521,0.347665,0.154193}+I{0.919549}+R3{0.166563,0.0121851,0.765369,0.220225,0.068068,12.1851}" --length 893078
+
+To mimic the alignment used to produce this analysis, i.e. simulate an alignment of the same length as the original alignment, using the tree and model parameters estimated from this analysis *and* copying the same gap positions as the original alignment, you can use the following command:
+
+iqtree -s cluster_1.aln.fa --alisim mimicked_MSA
+
+To simulate any number of alignments in either of the two commandlines above, use the --num-alignments options, for example mimic 100 alignments you would use the command line:
+
+iqtree -s cluster_1.aln.fa --alisim mimicked_MSA --num-alignments 100
+
+For more information on using AliSim, please visit: www.iqtree.org/doc/AliSim
+
+TIME STAMP
+----------
+
+Date and time: Fri Aug 29 05:44:05 2025
+Total CPU time used: 92.755703 seconds (0h:1m:32s)
+Total wall-clock time used: 31.055083 seconds (0h:0m:31s)
+

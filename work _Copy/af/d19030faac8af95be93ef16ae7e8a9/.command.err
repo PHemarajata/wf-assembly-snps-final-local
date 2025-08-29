@@ -1,0 +1,14 @@
+Unable to find image 'quay.io/biocontainers/ska2:0.3.7--h4349ce8_2' locally
+0.3.7--h4349ce8_2: Pulling from biocontainers/ska2
+0cacab098358: Already exists
+bd9ddc54bea9: Already exists
+0e7473e12183: Pulling fs layer
+0e7473e12183: Download complete
+0e7473e12183: Pull complete
+Digest: sha256:0e0e67586b7e2e83835c8754b6875ca823a69f8fd87f093ff9396fff8a9e4cc6
+Status: Downloaded newer image for quay.io/biocontainers/ska2:0.3.7--h4349ce8_2
+SKA: Split K-mer Analysis (the alignment-free aligner)
+SKA done in 37s
+⬛⬜⬛⬜⬛⬜⬛
+⬜⬛⬜⬛⬜⬛⬜
+/home/phemarajata/wf-assembly-snps-final/work/af/d19030faac8af95be93ef16ae7e8a9/.command.sh: line 86: warning: here-document at line 83 delimited by end-of-file (wanted `END_VERSIONS')

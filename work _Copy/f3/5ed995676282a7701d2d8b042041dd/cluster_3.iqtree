@@ -1,0 +1,262 @@
+IQ-TREE 2.2.6 COVID-edition built Dec  8 2023
+
+Input file name: cluster_3.aln.fa
+Type of analysis: ModelFinder + tree reconstruction
+Random seed number: 677721
+
+REFERENCES
+----------
+
+To cite IQ-TREE please use:
+
+Bui Quang Minh, Heiko A. Schmidt, Olga Chernomor, Dominik Schrempf,
+Michael D. Woodhams, Arndt von Haeseler, and Robert Lanfear (2020)
+IQ-TREE 2: New models and efficient methods for phylogenetic inference
+in the genomic era. Mol. Biol. Evol., in press.
+https://doi.org/10.1093/molbev/msaa015
+
+To cite ModelFinder please use: 
+
+Subha Kalyaanamoorthy, Bui Quang Minh, Thomas KF Wong, Arndt von Haeseler,
+and Lars S Jermiin (2017) ModelFinder: Fast model selection for
+accurate phylogenetic estimates. Nature Methods, 14:587–589.
+https://doi.org/10.1038/nmeth.4285
+
+SEQUENCE ALIGNMENT
+------------------
+
+Input data: 50 sequences with 711329 nucleotide sites
+Number of constant sites: 655576 (= 92.1621% of all sites)
+Number of invariant (constant or ambiguous constant) sites: 655576 (= 92.1621% of all sites)
+Number of parsimony informative sites: 40742
+Number of distinct site patterns: 163138
+
+ModelFinder
+-----------
+
+Best-fit model according to BIC: TVM+F+I+R4
+
+List of models sorted by BIC scores: 
+
+Model                  LogL         AIC      w-AIC        AICc     w-AICc         BIC      w-BIC
+TVM+F+I+R4      -1440718.805 2881659.610 +    0.524 2881659.645 +    0.524 2882933.323 +    0.994
+K3Pu+F+I+R4     -1440738.092 2881694.184 - 1.63e-08 2881694.218 - 1.63e-08 2882944.947 -  0.00297
+GTR+F+I+R4      -1440717.902 2881659.804 +    0.476 2881659.840 +    0.476 2882944.992 -  0.00291
+TIM+F+I+R4      -1440737.179 2881694.358 - 1.49e-08 2881694.392 - 1.49e-08 2882956.596 - 8.79e-06
+GTR+F+I+R5      -1440955.749 2882139.498 - 3.26e-105 2882139.535 - 3.26e-105 2883447.635 - 2.07e-112
+TPM2u+F+I+R4    -1441262.242 2882742.484 - 3.77e-236 2882742.518 - 3.77e-236 2883993.247 - 6.88e-231
+TPM3u+F+I+R4    -1441262.434 2882742.868 - 3.11e-236 2882742.902 - 3.11e-236 2883993.631 - 5.68e-231
+TIM2+F+I+R4     -1441261.300 2882742.600 - 3.56e-236 2882742.634 - 3.56e-236 2884004.838 - 2.09e-233
+TIM3+F+I+R4     -1441261.656 2882743.312 - 2.49e-236 2882743.346 - 2.49e-236 2884005.550 - 1.47e-233
+HKY+F+I+R4      -1441292.346 2882800.692 - 8.64e-249 2882800.725 - 8.65e-249 2884039.980 - 4.9e-241
+TN+F+I+R4       -1441291.353 2882800.706 - 8.58e-249 2882800.740 - 8.59e-249 2884051.469 - 1.57e-243
+GTR+F+I+R3      -1447787.997 2895795.994 -        0 2895796.028 -        0 2897058.232 -        0
+GTR+F+I+R2      -1469701.987 2939619.974 -        0 2939620.007 -        0 2940859.262 -        0
+SYM+I+R4        -1490717.855 2981653.710 -        0 2981653.744 -        0 2982904.473 -        0
+TVMe+I+R4       -1490729.298 2981674.596 -        0 2981674.629 -        0 2982913.884 -        0
+TPM3+I+R4       -1492096.627 2984405.254 -        0 2984405.286 -        0 2985621.592 -        0
+TIM3e+I+R4      -1492094.006 2984402.012 -        0 2984402.044 -        0 2985629.825 -        0
+TIM2e+I+R4      -1492135.787 2984485.574 -        0 2984485.606 -        0 2985713.387 -        0
+TPM2+I+R4       -1492162.011 2984536.022 -        0 2984536.054 -        0 2985752.360 -        0
+TIMe+I+R4       -1493039.165 2986292.330 -        0 2986292.362 -        0 2987520.143 -        0
+K3P+I+R4        -1493050.434 2986312.868 -        0 2986312.900 -        0 2987529.206 -        0
+TNe+I+R4        -1493055.675 2986323.350 -        0 2986323.382 -        0 2987539.688 -        0
+K2P+I+R4        -1493067.147 2986344.294 -        0 2986344.325 -        0 2987549.157 -        0
+F81+F+I+R4      -1537695.153 3075604.306 -        0 3075604.338 -        0 3076832.119 -        0
+JC+I+R4         -1575533.715 3151275.430 -        0 3151275.461 -        0 3152468.819 -        0
+GTR+F+R3        -1904504.266 3809226.532 -        0 3809226.566 -        0 3810477.295 -        0
+GTR+F+I+G4      -1904789.764 3809793.528 -        0 3809793.560 -        0 3811021.341 -        0
+GTR+F+R2        -1910843.025 3821900.050 -        0 3821900.082 -        0 3823127.863 -        0
+GTR+F+I         -1928494.969 3857201.938 -        0 3857201.970 -        0 3858418.276 -        0
+GTR+F+R4        -1973818.237 3947858.474 -        0 3947858.509 -        0 3949132.187 -        0
+GTR+F+G4        -1986530.728 3973273.456 -        0 3973273.488 -        0 3974489.794 -        0
+GTR+F           -2230873.381 4461956.762 -        0 4461956.793 -        0 4463161.625 -        0
+
+AIC, w-AIC   : Akaike information criterion scores and weights.
+AICc, w-AICc : Corrected AIC scores and weights.
+BIC, w-BIC   : Bayesian information criterion scores and weights.
+
+Plus signs denote the 95% confidence sets.
+Minus signs denote significant exclusion.
+
+SUBSTITUTION PROCESS
+--------------------
+
+Model of substitution: TVM+F+I+R4
+
+Rate parameter R:
+
+  A-C: 0.9957
+  A-G: 7.9944
+  A-T: 0.6012
+  C-G: 0.6905
+  C-T: 7.9944
+  G-T: 1.0000
+
+State frequencies: (empirical counts from alignment)
+
+  pi(A) = 0.1557
+  pi(C) = 0.3417
+  pi(G) = 0.3527
+  pi(T) = 0.1498
+
+Rate matrix Q:
+
+  A    -1.545    0.1618     1.341   0.04284
+  C   0.07373   -0.7591    0.1158    0.5696
+  G     0.592    0.1122   -0.7754   0.07125
+  T   0.04452     1.299    0.1677    -1.511
+
+Model of rate heterogeneity: Invar+FreeRate with 4 categories
+Proportion of invariable sites: 0.9216
+Site proportion and rates:  (0.4382,0.01026) (0.4381,0.1368) (0.04488,2.833) (0.0788,10.26)
+
+ Category  Relative_rate  Proportion
+  0         0              0.9216
+  1         0.01026        0.4382
+  2         0.1368         0.4381
+  3         2.833          0.04488
+  4         10.26          0.0788
+
+MAXIMUM LIKELIHOOD TREE
+-----------------------
+
+Log-likelihood of the tree: -1440701.3045 (s.e. 4396.3216)
+Unconstrained log-likelihood (without tree): -6317686.5802
+Number of free parameters (#branches + #model parameters): 111
+Akaike information criterion (AIC) score: 2881624.6090
+Corrected Akaike information criterion (AICc) score: 2881624.6440
+Bayesian information criterion (BIC) score: 2882898.3218
+
+Total tree length (sum of branch lengths): 0.7051
+Sum of internal branch lengths: 0.3039 (43.0977% of tree length)
+
+NOTE: Tree is UNROOTED although outgroup taxon 'IP-0031' is drawn at root
+
++-------IP-0031
+|
+|                                   +------IP-0032
+|                           +-------|
+|                           |       +-----IP-0065
+|                       +---|
+|                       |   +------------IP-0072
+|                    +--|
+|                    |  |                +--IP-0046
+|                    |  +----------------|
+|                    |                   +--IP-0063
+|                 +--|
+|                 |  |  +-------------IP-0047
+|                 |  +--|
+|                 |     |          +----IP-0050
+|                 |     |  +-------|
+|                 |     |  |       +----IP-0051
+|                 |     +--|
+|                 |        |                +--IP-0056
+|                 |        +----------------|
+|                 |                         +--IP-0060
+|              +--|
+|              |  |                        +--IP-0033
+|              |  |                     +--|
+|              |  |                     |  +--IP-0053
+|              |  |        +------------|
+|              |  |        |            +----IP-0061
+|              |  |     +--|
+|              |  |     |  |                               +--IP-0034
+|              |  |     |  |                           +---|
+|              |  |     |  |                           |   +--IP-0040
+|              |  |     |  |                        +--|
+|              |  |     |  |                        |  |     +--IP-0038
+|              |  |     |  |                        |  |  +--|
+|              |  |     |  |                        |  |  |  +--IP-0048
+|              |  |     |  |                        |  +--|
+|              |  |     |  |                        |     +--IP-0039
+|              |  |     |  |                     +--|
+|              |  |     |  |                     |  +--IP-0077
+|              |  |     |  |                +----|
+|              |  |     |  |                |    +---IP-0055
+|              |  |     |  +----------------|
+|              |  |     |                   +------IP-0044
+|              |  |  +--|
+|              |  |  |  |                          +--IP-0036
+|              |  |  |  |                   +------|
+|              |  |  |  |                   |      |                 +--IP-0041
+|              |  |  |  |                   |      |              +--|
+|              |  |  |  |                   |      |              |  +--IP-0070
+|              |  |  |  |                   |      |           +--|
+|              |  |  |  |                   |      |           |  |  +--IP-0064
+|              |  |  |  |                   |      |           |  +--|
+|              |  |  |  |                   |      |           |     +--IP-0069
+|              |  |  |  |                   |      |        +--|
+|              |  |  |  |                   |      |        |  +--IP-0049
+|              |  |  |  |                   |      |     +--|
+|              |  |  |  |                   |      |     |  +--IP-0067
+|              |  |  |  |                   |      |  +--|
+|              |  |  |  |                   |      |  |  |  +--IP-0059
+|              |  |  |  |                   |      |  |  +--|
+|              |  |  |  |                   |      |  |     +--IP-0068
+|              |  |  |  |                   |      +--|
+|              |  |  |  |                   |         +--IP-0057
+|              |  |  |  |      +------------|
+|              |  |  |  |      |            +-------IP-0080
+|              |  |  |  |  +---|
+|              |  |  |  |  |   |         +------------------IP-0054
+|              |  |  |  |  |   +---------|
+|              |  |  |  |  |             +---------------IP-0075
+|              |  |  |  +--|
+|              |  |  |     +-------------------IP-0042
+|              |  +--|
+|              |     |  +-------------------IP-0037
+|              |     +--|
+|              |        +-------------------IP-0076
+|           +--|
+|           |  |  +----------IP-0045
+|           |  +--|
+|           |     |               +--IP-0058
+|           |     |  +------------|
+|           |     |  |            +--IP-0078
+|           |     +--|
+|           |        +-------------IP-0073
+|     +-----|
+|     |     +---------------IP-0074
+|  +--|
+|  |  +-------IP-0071
++--|
+|  |          +--IP-0035
+|  |      +---|
+|  |      |   +--IP-0079
+|  |   +--|
+|  |   |  |  +--IP-0062
+|  |   |  +--|
+|  |   |     +--IP-0066
+|  +---|
+|      +--------IP-0043
+|
++--IP-0052
+
+Tree in newick format:
+
+(IP-0031:0.0122722107,(((((((((IP-0032:0.0112769383,IP-0065:0.0097225971):0.0124854799,IP-0072:0.0191894869):0.0058972022,(IP-0046:0.0028477648,IP-0063:0.0029752050):0.0247684539):0.0045987743,(IP-0047:0.0205765491,((IP-0050:0.0079450355,IP-0051:0.0083655547):0.0115314740,(IP-0056:0.0000338178,IP-0060:0.0000167896):0.0246800937):0.0045279217):0.0044221064):0.0030729459,(((((IP-0033:0.0002701867,IP-0053:0.0003377761):0.0054825178,IP-0061:0.0084719477):0.0190160667,(((((IP-0034:0.0025581258,IP-0040:0.0022759877):0.0066084286,((IP-0038:0.0043607595,IP-0048:0.0028345531):0.0001934488,IP-0039:0.0014268387):0.0001261710):0.0004842081,IP-0077:0.0033460319):0.0014318919,IP-0055:0.0060216388):0.0077837684,IP-0044:0.0101402015):0.0250886368):0.0034049293,((((IP-0036:0.0053057102,((((((IP-0041:0.0000102883,IP-0070:0.0024022658):0.0000104595,(IP-0064:0.0000151343,IP-0069:0.0034225478):0.0000090031):0.0000030196,IP-0049:0.0000350724):0.0000341572,IP-0067:0.0000732829):0.0000251692,(IP-0059:0.0000489770,IP-0068:0.0023200149):0.0021744493):0.0002770240,IP-0057:0.0022309386):0.0018936010):0.0103933197,IP-0080:0.0115904428):0.0192559030,(IP-0054:0.0281719849,IP-0075:0.0234663740):0.0155545206):0.0062767513,IP-0042:0.0297403956):0.0048195633):0.0031277852,(IP-0037:0.0298448673,IP-0076:0.0285005252):0.0036747356):0.0036717284):0.0035567972,(IP-0045:0.0162376021,((IP-0058:0.0000291457,IP-0078:0.0000511018):0.0189383105,IP-0073:0.0207045034):0.0038419999):0.0051629940):0.0041353748,IP-0074:0.0240937733):0.0096788344,IP-0071:0.0127292092):0.0045927040,(((IP-0035:0.0016563807,IP-0079:0.0004564780):0.0057028789,(IP-0062:0.0024361418,IP-0066:0.0002350930):0.0010335823):0.0028751832,IP-0043:0.0141031506):0.0058539597):0.0017156014,IP-0052:0.0040570659);
+
+ALISIM COMMAND
+--------------
+To simulate an alignment of the same length as the original alignment, using the tree and model parameters estimated from this analysis, you can use the following command:
+
+--alisim simulated_MSA -t cluster_3.treefile -m "TVM{0.995686,7.99445,0.601231,0.690498}+F{0.155735,0.341674,0.352746,0.149845}+I{0.921621}+R4{0.438237,0.0102585,0.438078,0.136824,0.0448808,2.83297,0.0788047,10.2585}" --length 711329
+
+To mimic the alignment used to produce this analysis, i.e. simulate an alignment of the same length as the original alignment, using the tree and model parameters estimated from this analysis *and* copying the same gap positions as the original alignment, you can use the following command:
+
+iqtree -s cluster_3.aln.fa --alisim mimicked_MSA
+
+To simulate any number of alignments in either of the two commandlines above, use the --num-alignments options, for example mimic 100 alignments you would use the command line:
+
+iqtree -s cluster_3.aln.fa --alisim mimicked_MSA --num-alignments 100
+
+For more information on using AliSim, please visit: www.iqtree.org/doc/AliSim
+
+TIME STAMP
+----------
+
+Date and time: Fri Aug 29 08:11:45 2025
+Total CPU time used: 151.25399 seconds (0h:2m:31s)
+Total wall-clock time used: 19.015939 seconds (0h:0m:19s)
+

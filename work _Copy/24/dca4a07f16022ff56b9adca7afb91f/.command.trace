@@ -1,0 +1,17 @@
+nextflow.trace/v2
+realtime=18
+%cpu=936
+cpu_model=Intel(R) Core(TM) Ultra 9 185H
+rchar=7379103
+wchar=7265506
+syscr=333
+syscw=78
+read_bytes=7200768
+write_bytes=7274496
+%mem=0
+vmem=4364
+rss=3232
+peak_vmem=4364
+peak_rss=3232
+vol_ctxt=2
+inv_ctxt=0

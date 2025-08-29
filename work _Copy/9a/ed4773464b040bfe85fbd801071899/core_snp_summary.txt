@@ -1,0 +1,18 @@
+INTEGRATED CORE SNP ANALYSIS SUMMARY
+==================================================
+
+Total samples: 0
+Total clusters processed: 7
+Total integrated SNP positions: 0
+
+SNPs per cluster:
+--------------------
+Cluster cluster_0: 0 SNPs
+Cluster cluster_1: 0 SNPs
+Cluster cluster_2: 0 SNPs
+Cluster cluster_3: 0 SNPs
+Cluster cluster_4: 0 SNPs
+Cluster cluster_5: 0 SNPs
+Cluster cluster_6: 0 SNPs
+
+Integrated alignment length: 0

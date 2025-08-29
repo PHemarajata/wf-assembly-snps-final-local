@@ -1,0 +1,11 @@
+Reading Mash distances from mash_distances.tsv
+Clustering with threshold 0.028
+Found 7 clusters
+  Cluster 0: 50 samples
+  Cluster 1: 50 samples
+  Cluster 2: 50 samples
+  Cluster 3: 50 samples
+  Cluster 4: 50 samples
+  Cluster 5: 50 samples
+  Cluster 6: 22 samples
+Cluster assignments written to clusters.tsv
