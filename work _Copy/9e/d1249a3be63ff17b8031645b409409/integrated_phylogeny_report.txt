@@ -1,0 +1,2 @@
+Insufficient sequences for phylogenetic analysis (0 sequences found)
+Minimum 3 sequences required for tree construction

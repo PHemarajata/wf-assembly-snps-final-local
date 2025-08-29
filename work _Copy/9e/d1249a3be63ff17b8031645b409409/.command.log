@@ -1,0 +1,5 @@
+Checking integrated alignment file: integrated_core_snps.fa
+WARNING: Alignment file integrated_core_snps.fa is empty
+WARNING: Integrated alignment has only 0 sequences. Cannot build phylogenetic tree.
+Minimum 3 sequences required for phylogenetic analysis.
+/home/phemarajata/wf-assembly-snps-final/work/9e/d1249a3be63ff17b8031645b409409/.command.sh: line 109: warning: here-document at line 106 delimited by end-of-file (wanted `END_VERSIONS')

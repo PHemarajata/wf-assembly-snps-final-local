@@ -1,0 +1,115 @@
+WARNING: Running pip as the 'root' user can result in broken permissions and conflicting behaviour with the system package manager. It is recommended to use a virtual environment instead: https://pip.pypa.io/warnings/venv
+Collecting pandas
+  Downloading pandas-2.3.2-cp39-cp39-manylinux_2_17_x86_64.manylinux2014_x86_64.whl (12.4 MB)
+Collecting biopython
+  Downloading biopython-1.85-cp39-cp39-manylinux_2_17_x86_64.manylinux2014_x86_64.whl (3.2 MB)
+Collecting tzdata>=2022.7
+  Downloading tzdata-2025.2-py2.py3-none-any.whl (347 kB)
+Collecting python-dateutil>=2.8.2
+  Downloading python_dateutil-2.9.0.post0-py2.py3-none-any.whl (229 kB)
+Collecting pytz>=2020.1
+  Downloading pytz-2025.2-py2.py3-none-any.whl (509 kB)
+Requirement already satisfied: numpy>=1.22.4 in /usr/local/lib/python3.9/site-packages (from pandas) (2.0.2)
+Collecting six>=1.5
+  Downloading six-1.17.0-py2.py3-none-any.whl (11 kB)
+Installing collected packages: six, tzdata, pytz, python-dateutil, pandas, biopython
+WARNING: Running pip as the 'root' user can result in broken permissions and conflicting behaviour with the system package manager. It is recommended to use a virtual environment instead: https://pip.pypa.io/warnings/venv
+Successfully installed biopython-1.85 pandas-2.3.2 python-dateutil-2.9.0.post0 pytz-2025.2 six-1.17.0 tzdata-2025.2
+Starting core SNP integration...
+Input files received:
+total 112
+drwxrwxr-x    2 1000     1000          4096 Aug 29 10:12 .
+drwxrwxr-x    7 1000     1000          4096 Aug 29 10:12 ..
+-rw-rw-r--    1 1000     1000             0 Aug 29 10:12 .command.begin
+-rw-rw-r--    1 1000     1000           444 Aug 29 10:12 .command.err
+-rw-rw-r--    1 1000     1000          1381 Aug 29 10:12 .command.log
+-rw-rw-r--    1 1000     1000           937 Aug 29 10:12 .command.out
+-rw-rw-r--    1 1000     1000         13201 Aug 29 10:12 .command.run
+-rw-rw-r--    1 1000     1000          8968 Aug 29 10:12 .command.sh
+-rw-r--r--    1 root     root             0 Aug 29 10:12 .command.trace
+-rw-r--r--    1 root     root           182 Aug 29 10:12 =1.15.4
+lrwxrwxrwx    1 1000     1000           102 Aug 29 10:12 cluster_0_core_snps.fa -> /home/phemarajata/wf-assembly-snps-final/work/8d/daf22dd992f192ad979885f923d13f/cluster_0_core_snps.fa
+lrwxrwxrwx    1 1000     1000           107 Aug 29 10:12 cluster_0_snp_positions.tsv -> /home/phemarajata/wf-assembly-snps-final/work/8d/daf22dd992f192ad979885f923d13f/cluster_0_snp_positions.tsv
+lrwxrwxrwx    1 1000     1000           102 Aug 29 10:12 cluster_1_core_snps.fa -> /home/phemarajata/wf-assembly-snps-final/work/2b/ead84713b606701373cb38b10b0d7d/cluster_1_core_snps.fa
+lrwxrwxrwx    1 1000     1000           107 Aug 29 10:12 cluster_1_snp_positions.tsv -> /home/phemarajata/wf-assembly-snps-final/work/2b/ead84713b606701373cb38b10b0d7d/cluster_1_snp_positions.tsv
+lrwxrwxrwx    1 1000     1000           102 Aug 29 10:12 cluster_2_core_snps.fa -> /home/phemarajata/wf-assembly-snps-final/work/10/21263292a779e541a0314dec725d8e/cluster_2_core_snps.fa
+lrwxrwxrwx    1 1000     1000           107 Aug 29 10:12 cluster_2_snp_positions.tsv -> /home/phemarajata/wf-assembly-snps-final/work/10/21263292a779e541a0314dec725d8e/cluster_2_snp_positions.tsv
+lrwxrwxrwx    1 1000     1000           102 Aug 29 10:12 cluster_3_core_snps.fa -> /home/phemarajata/wf-assembly-snps-final/work/a7/551b42cde61b4a1f94a2b5efd54c56/cluster_3_core_snps.fa
+lrwxrwxrwx    1 1000     1000           107 Aug 29 10:12 cluster_3_snp_positions.tsv -> /home/phemarajata/wf-assembly-snps-final/work/a7/551b42cde61b4a1f94a2b5efd54c56/cluster_3_snp_positions.tsv
+lrwxrwxrwx    1 1000     1000           102 Aug 29 10:12 cluster_4_core_snps.fa -> /home/phemarajata/wf-assembly-snps-final/work/65/81040e437c1d3ccf55b973f95ceac0/cluster_4_core_snps.fa
+lrwxrwxrwx    1 1000     1000           107 Aug 29 10:12 cluster_4_snp_positions.tsv -> /home/phemarajata/wf-assembly-snps-final/work/65/81040e437c1d3ccf55b973f95ceac0/cluster_4_snp_positions.tsv
+lrwxrwxrwx    1 1000     1000           102 Aug 29 10:12 cluster_5_core_snps.fa -> /home/phemarajata/wf-assembly-snps-final/work/46/828322532feddc03359959532204ad/cluster_5_core_snps.fa
+lrwxrwxrwx    1 1000     1000           107 Aug 29 10:12 cluster_5_snp_positions.tsv -> /home/phemarajata/wf-assembly-snps-final/work/46/828322532feddc03359959532204ad/cluster_5_snp_positions.tsv
+lrwxrwxrwx    1 1000     1000           102 Aug 29 10:12 cluster_6_core_snps.fa -> /home/phemarajata/wf-assembly-snps-final/work/ec/55145446ebb271b4a2617b1b432f5e/cluster_6_core_snps.fa
+lrwxrwxrwx    1 1000     1000           107 Aug 29 10:12 cluster_6_snp_positions.tsv -> /home/phemarajata/wf-assembly-snps-final/work/ec/55145446ebb271b4a2617b1b432f5e/cluster_6_snp_positions.tsv
+lrwxrwxrwx    1 1000     1000            92 Aug 29 10:12 clusters.tsv -> /home/phemarajata/wf-assembly-snps-final/work/83/e8ab121575840c983d53cac443e396/clusters.tsv
+
+Core SNP files:
+lrwxrwxrwx    1 1000     1000           102 Aug 29 10:12 cluster_0_core_snps.fa -> /home/phemarajata/wf-assembly-snps-final/work/8d/daf22dd992f192ad979885f923d13f/cluster_0_core_snps.fa
+lrwxrwxrwx    1 1000     1000           102 Aug 29 10:12 cluster_1_core_snps.fa -> /home/phemarajata/wf-assembly-snps-final/work/2b/ead84713b606701373cb38b10b0d7d/cluster_1_core_snps.fa
+lrwxrwxrwx    1 1000     1000           102 Aug 29 10:12 cluster_2_core_snps.fa -> /home/phemarajata/wf-assembly-snps-final/work/10/21263292a779e541a0314dec725d8e/cluster_2_core_snps.fa
+lrwxrwxrwx    1 1000     1000           102 Aug 29 10:12 cluster_3_core_snps.fa -> /home/phemarajata/wf-assembly-snps-final/work/a7/551b42cde61b4a1f94a2b5efd54c56/cluster_3_core_snps.fa
+lrwxrwxrwx    1 1000     1000           102 Aug 29 10:12 cluster_4_core_snps.fa -> /home/phemarajata/wf-assembly-snps-final/work/65/81040e437c1d3ccf55b973f95ceac0/cluster_4_core_snps.fa
+lrwxrwxrwx    1 1000     1000           102 Aug 29 10:12 cluster_5_core_snps.fa -> /home/phemarajata/wf-assembly-snps-final/work/46/828322532feddc03359959532204ad/cluster_5_core_snps.fa
+lrwxrwxrwx    1 1000     1000           102 Aug 29 10:12 cluster_6_core_snps.fa -> /home/phemarajata/wf-assembly-snps-final/work/ec/55145446ebb271b4a2617b1b432f5e/cluster_6_core_snps.fa
+
+SNP position files:
+lrwxrwxrwx    1 1000     1000           107 Aug 29 10:12 cluster_0_snp_positions.tsv -> /home/phemarajata/wf-assembly-snps-final/work/8d/daf22dd992f192ad979885f923d13f/cluster_0_snp_positions.tsv
+lrwxrwxrwx    1 1000     1000           107 Aug 29 10:12 cluster_1_snp_positions.tsv -> /home/phemarajata/wf-assembly-snps-final/work/2b/ead84713b606701373cb38b10b0d7d/cluster_1_snp_positions.tsv
+lrwxrwxrwx    1 1000     1000           107 Aug 29 10:12 cluster_2_snp_positions.tsv -> /home/phemarajata/wf-assembly-snps-final/work/10/21263292a779e541a0314dec725d8e/cluster_2_snp_positions.tsv
+lrwxrwxrwx    1 1000     1000           107 Aug 29 10:12 cluster_3_snp_positions.tsv -> /home/phemarajata/wf-assembly-snps-final/work/a7/551b42cde61b4a1f94a2b5efd54c56/cluster_3_snp_positions.tsv
+lrwxrwxrwx    1 1000     1000           107 Aug 29 10:12 cluster_4_snp_positions.tsv -> /home/phemarajata/wf-assembly-snps-final/work/65/81040e437c1d3ccf55b973f95ceac0/cluster_4_snp_positions.tsv
+lrwxrwxrwx    1 1000     1000           107 Aug 29 10:12 cluster_5_snp_positions.tsv -> /home/phemarajata/wf-assembly-snps-final/work/46/828322532feddc03359959532204ad/cluster_5_snp_positions.tsv
+lrwxrwxrwx    1 1000     1000           107 Aug 29 10:12 cluster_6_snp_positions.tsv -> /home/phemarajata/wf-assembly-snps-final/work/ec/55145446ebb271b4a2617b1b432f5e/cluster_6_snp_positions.tsv
+
+Starting core SNP integration process...
+Read cluster assignments: 322 entries
+Found 7 core SNP files: ['cluster_2_core_snps.fa', 'cluster_0_core_snps.fa', 'cluster_5_core_snps.fa', 'cluster_6_core_snps.fa', 'cluster_1_core_snps.fa', 'cluster_3_core_snps.fa', 'cluster_4_core_snps.fa']
+Processing cluster_2_core_snps.fa for cluster cluster_2
+  File size: 0 bytes
+  WARNING: cluster_2_core_snps.fa is empty
+Processing cluster_0_core_snps.fa for cluster cluster_0
+  File size: 0 bytes
+  WARNING: cluster_0_core_snps.fa is empty
+Processing cluster_5_core_snps.fa for cluster cluster_5
+  File size: 0 bytes
+  WARNING: cluster_5_core_snps.fa is empty
+Processing cluster_6_core_snps.fa for cluster cluster_6
+  File size: 0 bytes
+  WARNING: cluster_6_core_snps.fa is empty
+Processing cluster_1_core_snps.fa for cluster cluster_1
+  File size: 0 bytes
+  WARNING: cluster_1_core_snps.fa is empty
+Processing cluster_3_core_snps.fa for cluster cluster_3
+  File size: 0 bytes
+  WARNING: cluster_3_core_snps.fa is empty
+Processing cluster_4_core_snps.fa for cluster cluster_4
+  File size: 0 bytes
+  WARNING: cluster_4_core_snps.fa is empty
+
+Total samples with SNP data: 0
+Cluster SNP counts: {'cluster_2': 0, 'cluster_0': 0, 'cluster_5': 0, 'cluster_6': 0, 'cluster_1': 0, 'cluster_3': 0, 'cluster_4': 0}
+Wrote 0 sequences to integrated_core_snps.fa
+Output file size: 0 bytes
+Found 7 SNP position files
+  WARNING: cluster_5_snp_positions.tsv is empty
+  WARNING: cluster_1_snp_positions.tsv is empty
+  WARNING: cluster_6_snp_positions.tsv is empty
+  WARNING: cluster_4_snp_positions.tsv is empty
+  WARNING: cluster_0_snp_positions.tsv is empty
+  WARNING: cluster_3_snp_positions.tsv is empty
+  WARNING: cluster_2_snp_positions.tsv is empty
+No SNP positions to integrate - created empty file
+Created sample mapping for 0 samples
+Integration complete: 0 samples, 0 total SNP positions
+
+WARNING: No sequences were integrated!
+This will cause downstream processes to fail.
+Check the EXTRACT_CORE_SNPS and cluster alignment processes.
+
+Integration process completed. Final output files:
+-rw-r--r--    1 root     root           588 Aug 29 10:12 core_snp_summary.txt
+-rw-r--r--    1 root     root             0 Aug 29 10:12 integrated_core_snps.fa
+-rw-r--r--    1 root     root            73 Aug 29 10:12 integrated_snp_positions.tsv
+-rw-r--r--    1 root     root             1 Aug 29 10:12 sample_cluster_mapping.tsv
+/home/phemarajata/wf-assembly-snps-final/work/11/76b496dd175b72de70b9e3e91da996/.command.sh: line 220: warning: here-document at line 214 delimited by end-of-file (wanted `END_VERSIONS')

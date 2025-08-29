@@ -1,0 +1,4 @@
+Checking integrated alignment file: integrated_core_snps.fa
+WARNING: Alignment file integrated_core_snps.fa is empty
+WARNING: Integrated alignment has only 0 sequences. Cannot build phylogenetic tree.
+Minimum 3 sequences required for phylogenetic analysis.

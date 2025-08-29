@@ -1,32 +1,12 @@
-process EXTRACT_CORE_SNPS {
-    tag "cluster_${cluster_id}"
-    label 'process_low'
-    container "quay.io/biocontainers/python:3.9--1"
-    
-    publishDir "${params.outdir}/Core_SNPs", mode: params.publish_dir_mode, pattern: "*.{fa,tsv}"
-
-    input:
-    tuple val(cluster_id), path(alignment)
-    path clusters_file
-
-    output:
-    tuple val(cluster_id), path("${cluster_id}_core_snps.fa"), emit: core_snps
-    tuple val(cluster_id), path("${cluster_id}_snp_positions.tsv"), emit: snp_positions
-    path "versions.yml", emit: versions
-
-    when:
-    task.ext.when == null || task.ext.when
-
-    script:
-    """
-    # Install compatible versions of numpy and pandas
+#!/bin/bash -euo pipefail
+# Install compatible versions of numpy and pandas
     pip install --upgrade numpy>=1.15.4
     pip install pandas biopython
 
-    echo "Starting core SNP extraction for cluster ${cluster_id}"
-    echo "Input alignment file: ${alignment}"
-    echo "Alignment file size: \$(wc -c < "${alignment}") bytes"
-    echo "Number of sequences: \$(grep -c "^>" "${alignment}" 2>/dev/null || echo "0")"
+    echo "Starting core SNP extraction for cluster cluster_1"
+    echo "Input alignment file: cluster_1.filtered_polymorphic_sites.fasta"
+    echo "Alignment file size: $(wc -c < "cluster_1.filtered_polymorphic_sites.fasta") bytes"
+    echo "Number of sequences: $(grep -c "^>" "cluster_1.filtered_polymorphic_sites.fasta" 2>/dev/null || echo "0")"
     echo ""
 
     python3 << 'EOF'
@@ -49,7 +29,7 @@ def extract_core_snps(alignment_file, cluster_id, clusters_file):
         with open(f"{cluster_id}_core_snps.fa", 'w') as f:
             pass
         with open(f"{cluster_id}_snp_positions.tsv", 'w') as f:
-            f.write("position\\tref_base\\talt_bases\\tcluster_id\\n")
+            f.write("position\tref_base\talt_bases\tcluster_id\n")
         return
     
     file_size = os.path.getsize(alignment_file)
@@ -61,12 +41,12 @@ def extract_core_snps(alignment_file, cluster_id, clusters_file):
         with open(f"{cluster_id}_core_snps.fa", 'w') as f:
             pass
         with open(f"{cluster_id}_snp_positions.tsv", 'w') as f:
-            f.write("position\\tref_base\\talt_bases\\tcluster_id\\n")
+            f.write("position\tref_base\talt_bases\tcluster_id\n")
         return
     
     # Read cluster assignments to get sample names
     try:
-        clusters_df = pd.read_csv(clusters_file, sep='\\t')
+        clusters_df = pd.read_csv(clusters_file, sep='\t')
         cluster_samples = clusters_df[clusters_df['cluster_id'] == cluster_id]['sample_id'].tolist()
         print(f"Expected samples in cluster {cluster_id}: {cluster_samples}")
     except Exception as e:
@@ -96,7 +76,7 @@ def extract_core_snps(alignment_file, cluster_id, clusters_file):
         with open(f"{cluster_id}_core_snps.fa", 'w') as f:
             pass
         with open(f"{cluster_id}_snp_positions.tsv", 'w') as f:
-            f.write("position\\tref_base\\talt_bases\\tcluster_id\\n")
+            f.write("position\tref_base\talt_bases\tcluster_id\n")
         return
     
     # Get alignment length
@@ -138,14 +118,14 @@ def extract_core_snps(alignment_file, cluster_id, clusters_file):
         for name in seq_names:
             if core_snps[name]:  # Only write if there are SNPs
                 snp_seq = ''.join(core_snps[name])
-                f.write(f">{name}\\n{snp_seq}\\n")
+                f.write(f">{name}\n{snp_seq}\n")
                 sequences_written += 1
     
     print(f"Wrote {sequences_written} sequences with SNPs to {cluster_id}_core_snps.fa")
     
     # Write SNP positions table
     snp_df = pd.DataFrame(snp_positions)
-    snp_df.to_csv(f"{cluster_id}_snp_positions.tsv", sep='\\t', index=False)
+    snp_df.to_csv(f"{cluster_id}_snp_positions.tsv", sep='\t', index=False)
     
     print(f"Cluster {cluster_id}: Found {len(snp_positions)} core SNP positions")
     
@@ -157,22 +137,20 @@ def extract_core_snps(alignment_file, cluster_id, clusters_file):
         print("- The cluster has insufficient diversity")
 
 # Run extraction
-extract_core_snps("${alignment}", "${cluster_id}", "${clusters_file}")
+extract_core_snps("cluster_1.filtered_polymorphic_sites.fasta", "cluster_1", "clusters.tsv")
 EOF
 
     echo ""
-    echo "Core SNP extraction completed for cluster ${cluster_id}"
+    echo "Core SNP extraction completed for cluster cluster_1"
     echo "Output files:"
-    ls -la ${cluster_id}_core_snps.fa ${cluster_id}_snp_positions.tsv
-    echo "Core SNPs file size: \$(wc -c < "${cluster_id}_core_snps.fa") bytes"
-    echo "SNP positions file size: \$(wc -c < "${cluster_id}_snp_positions.tsv") bytes"
+    ls -la cluster_1_core_snps.fa cluster_1_snp_positions.tsv
+    echo "Core SNPs file size: $(wc -c < "cluster_1_core_snps.fa") bytes"
+    echo "SNP positions file size: $(wc -c < "cluster_1_snp_positions.tsv") bytes"
 
     cat <<-END_VERSIONS > versions.yml
-    "${task.process}":
-        python: \$(python --version | sed 's/Python //')
-        biopython: \$(python -c "import Bio; print(Bio.__version__)")
-        pandas: \$(python -c "import pandas; print(pandas.__version__)")
-        numpy: \$(python -c "import numpy; print(numpy.__version__)")
+    "ASSEMBLY_SNPS_SCALABLE:INTEGRATE_RESULTS:EXTRACT_CORE_SNPS":
+        python: $(python --version | sed 's/Python //')
+        biopython: $(python -c "import Bio; print(Bio.__version__)")
+        pandas: $(python -c "import pandas; print(pandas.__version__)")
+        numpy: $(python -c "import numpy; print(numpy.__version__)")
     END_VERSIONS
-    """
-}

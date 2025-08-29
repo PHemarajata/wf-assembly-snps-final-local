@@ -1,28 +1,5 @@
-process INTEGRATE_CORE_SNPS {
-    tag "global_integration"
-    label 'process_medium'
-    container "quay.io/biocontainers/python:3.9--1"
-    
-    publishDir "${params.outdir}/Integrated_Results", mode: params.publish_dir_mode, pattern: "*.{fa,tsv,txt}"
-
-    input:
-    path core_snp_files
-    path snp_position_files
-    path clusters_file
-
-    output:
-    path "integrated_core_snps.fa", emit: integrated_alignment
-    path "integrated_snp_positions.tsv", emit: integrated_positions
-    path "core_snp_summary.txt", emit: summary
-    path "sample_cluster_mapping.tsv", emit: sample_mapping
-    path "versions.yml", emit: versions
-
-    when:
-    task.ext.when == null || task.ext.when
-
-    script:
-    """
-    # Install compatible versions of numpy and pandas
+#!/bin/bash -euo pipefail
+# Install compatible versions of numpy and pandas
     pip install --upgrade numpy>=1.15.4
     pip install pandas biopython
 
@@ -53,7 +30,7 @@ def integrate_core_snps():
     
     # Read cluster assignments
     try:
-        clusters_df = pd.read_csv("${clusters_file}", sep='\\t')
+        clusters_df = pd.read_csv("clusters.tsv", sep='\t')
         print(f"Read cluster assignments: {len(clusters_df)} entries")
         sample_to_cluster = dict(zip(clusters_df['sample_id'], clusters_df['cluster_id']))
     except Exception as e:
@@ -115,7 +92,7 @@ def integrate_core_snps():
             print(f"  ERROR processing {snp_file}: {e}")
             cluster_snp_counts[cluster_id] = 0
     
-    print(f"\\nTotal samples with SNP data: {len(all_sequences)}")
+    print(f"\nTotal samples with SNP data: {len(all_sequences)}")
     print(f"Cluster SNP counts: {cluster_snp_counts}")
     
     # Create integrated alignment by concatenating SNPs from all clusters
@@ -135,7 +112,7 @@ def integrate_core_snps():
     with open("integrated_core_snps.fa", 'w') as f:
         for sample_id, sequence in integrated_sequences.items():
             if sequence:  # Only write non-empty sequences
-                f.write(f">{sample_id}\\n{sequence}\\n")
+                f.write(f">{sample_id}\n{sequence}\n")
                 sequences_written += 1
     
     print(f"Wrote {sequences_written} sequences to integrated_core_snps.fa")
@@ -153,7 +130,7 @@ def integrate_core_snps():
     
     for pos_file in snp_position_files:
         try:
-            cluster_positions = pd.read_csv(pos_file, sep='\\t')
+            cluster_positions = pd.read_csv(pos_file, sep='\t')
             if not cluster_positions.empty:
                 # Adjust positions by offset
                 cluster_positions['global_position'] = cluster_positions['position'] + position_offset
@@ -172,11 +149,11 @@ def integrate_core_snps():
     # Combine all position data
     if all_positions:
         integrated_positions = pd.concat(all_positions, ignore_index=True)
-        integrated_positions.to_csv("integrated_snp_positions.tsv", sep='\\t', index=False)
+        integrated_positions.to_csv("integrated_snp_positions.tsv", sep='\t', index=False)
         print(f"Integrated {len(integrated_positions)} SNP positions")
     else:
         # Create empty file
-        pd.DataFrame(columns=['position', 'ref_base', 'alt_bases', 'cluster_id', 'global_position', 'original_position']).to_csv("integrated_snp_positions.tsv", sep='\\t', index=False)
+        pd.DataFrame(columns=['position', 'ref_base', 'alt_bases', 'cluster_id', 'global_position', 'original_position']).to_csv("integrated_snp_positions.tsv", sep='\t', index=False)
         print("No SNP positions to integrate - created empty file")
     
     # Create sample-cluster mapping
@@ -190,39 +167,39 @@ def integrate_core_snps():
         })
     
     mapping_df = pd.DataFrame(sample_mapping)
-    mapping_df.to_csv("sample_cluster_mapping.tsv", sep='\\t', index=False)
+    mapping_df.to_csv("sample_cluster_mapping.tsv", sep='\t', index=False)
     print(f"Created sample mapping for {len(mapping_df)} samples")
     
     # Create summary report
     with open("core_snp_summary.txt", 'w') as f:
-        f.write("INTEGRATED CORE SNP ANALYSIS SUMMARY\\n")
-        f.write("=" * 50 + "\\n\\n")
+        f.write("INTEGRATED CORE SNP ANALYSIS SUMMARY\n")
+        f.write("=" * 50 + "\n\n")
         
-        f.write(f"Total samples: {len(integrated_sequences)}\\n")
-        f.write(f"Total clusters processed: {len(cluster_snp_counts)}\\n")
-        f.write(f"Total integrated SNP positions: {sum(cluster_snp_counts.values())}\\n\\n")
+        f.write(f"Total samples: {len(integrated_sequences)}\n")
+        f.write(f"Total clusters processed: {len(cluster_snp_counts)}\n")
+        f.write(f"Total integrated SNP positions: {sum(cluster_snp_counts.values())}\n\n")
         
-        f.write("SNPs per cluster:\\n")
-        f.write("-" * 20 + "\\n")
+        f.write("SNPs per cluster:\n")
+        f.write("-" * 20 + "\n")
         for cluster_id, count in sorted(cluster_snp_counts.items()):
-            f.write(f"Cluster {cluster_id}: {count} SNPs\\n")
+            f.write(f"Cluster {cluster_id}: {count} SNPs\n")
         
-        f.write(f"\\nIntegrated alignment length: {max([len(seq) for seq in integrated_sequences.values()]) if integrated_sequences else 0}\\n")
+        f.write(f"\nIntegrated alignment length: {max([len(seq) for seq in integrated_sequences.values()]) if integrated_sequences else 0}\n")
         
         if integrated_sequences:
             avg_snps = sum([len(seq) for seq in integrated_sequences.values()]) / len(integrated_sequences)
-            f.write(f"Average SNPs per sample: {avg_snps:.2f}\\n")
+            f.write(f"Average SNPs per sample: {avg_snps:.2f}\n")
         else:
-            f.write("\\nWARNING: No sequences integrated!\\n")
-            f.write("Possible causes:\\n")
-            f.write("- All cluster alignments were empty\\n")
-            f.write("- No variable sites found in any cluster\\n")
-            f.write("- EXTRACT_CORE_SNPS processes failed\\n")
+            f.write("\nWARNING: No sequences integrated!\n")
+            f.write("Possible causes:\n")
+            f.write("- All cluster alignments were empty\n")
+            f.write("- No variable sites found in any cluster\n")
+            f.write("- EXTRACT_CORE_SNPS processes failed\n")
     
     print(f"Integration complete: {len(integrated_sequences)} samples, {sum(cluster_snp_counts.values())} total SNP positions")
     
     if len(integrated_sequences) == 0:
-        print("\\nWARNING: No sequences were integrated!")
+        print("\nWARNING: No sequences were integrated!")
         print("This will cause downstream processes to fail.")
         print("Check the EXTRACT_CORE_SNPS and cluster alignment processes.")
 
@@ -235,11 +212,9 @@ EOF
     ls -la integrated_core_snps.fa sample_cluster_mapping.tsv integrated_snp_positions.tsv core_snp_summary.txt
 
     cat <<-END_VERSIONS > versions.yml
-    "${task.process}":
-        python: \$(python --version | sed 's/Python //')
-        biopython: \$(python -c "import Bio; print(Bio.__version__)")
-        pandas: \$(python -c "import pandas; print(pandas.__version__)")
-        numpy: \$(python -c "import numpy; print(numpy.__version__)")
+    "ASSEMBLY_SNPS_SCALABLE:INTEGRATE_RESULTS:INTEGRATE_CORE_SNPS":
+        python: $(python --version | sed 's/Python //')
+        biopython: $(python -c "import Bio; print(Bio.__version__)")
+        pandas: $(python -c "import pandas; print(pandas.__version__)")
+        numpy: $(python -c "import numpy; print(numpy.__version__)")
     END_VERSIONS
-    """
-}

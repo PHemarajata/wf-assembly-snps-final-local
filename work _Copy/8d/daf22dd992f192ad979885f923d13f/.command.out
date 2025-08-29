@@ -1,0 +1,32 @@
+Collecting pandas
+  Downloading pandas-2.3.2-cp39-cp39-manylinux_2_17_x86_64.manylinux2014_x86_64.whl (12.4 MB)
+Collecting biopython
+  Downloading biopython-1.85-cp39-cp39-manylinux_2_17_x86_64.manylinux2014_x86_64.whl (3.2 MB)
+Collecting tzdata>=2022.7
+  Downloading tzdata-2025.2-py2.py3-none-any.whl (347 kB)
+Requirement already satisfied: numpy>=1.22.4 in /usr/local/lib/python3.9/site-packages (from pandas) (2.0.2)
+Collecting pytz>=2020.1
+  Downloading pytz-2025.2-py2.py3-none-any.whl (509 kB)
+Collecting python-dateutil>=2.8.2
+  Downloading python_dateutil-2.9.0.post0-py2.py3-none-any.whl (229 kB)
+Collecting six>=1.5
+  Downloading six-1.17.0-py2.py3-none-any.whl (11 kB)
+Installing collected packages: six, tzdata, pytz, python-dateutil, pandas, biopython
+Successfully installed biopython-1.85 pandas-2.3.2 python-dateutil-2.9.0.post0 pytz-2025.2 six-1.17.0 tzdata-2025.2
+Starting core SNP extraction for cluster cluster_0
+Input alignment file: cluster_0.filtered_polymorphic_sites.fasta
+Alignment file size: 0 bytes
+Number of sequences: 0
+0
+
+Processing cluster cluster_0
+Alignment file: cluster_0.filtered_polymorphic_sites.fasta
+Alignment file size: 0 bytes
+WARNING: Alignment file cluster_0.filtered_polymorphic_sites.fasta is empty
+
+Core SNP extraction completed for cluster cluster_0
+Output files:
+-rw-r--r--    1 root     root             0 Aug 29 10:12 cluster_0_core_snps.fa
+-rw-r--r--    1 root     root            39 Aug 29 10:12 cluster_0_snp_positions.tsv
+Core SNPs file size: 0 bytes
+SNP positions file size: 39 bytes

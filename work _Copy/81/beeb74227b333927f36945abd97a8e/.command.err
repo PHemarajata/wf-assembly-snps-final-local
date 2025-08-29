@@ -1,0 +1,22 @@
+Unable to find image 'quay.io/biocontainers/ete3:3.1.1--pyh24bf2e0_1' locally
+3.1.1--pyh24bf2e0_1: Pulling from biocontainers/ete3
+46bd1553cb1a: Pulling fs layer
+0d2d2d7c08d4: Pulling fs layer
+e5fe2df78490: Pulling fs layer
+c5f1df999e81: Pulling fs layer
+c5f1df999e81: Waiting
+e5fe2df78490: Verifying Checksum
+e5fe2df78490: Download complete
+0d2d2d7c08d4: Verifying Checksum
+0d2d2d7c08d4: Download complete
+46bd1553cb1a: Verifying Checksum
+46bd1553cb1a: Download complete
+46bd1553cb1a: Pull complete
+0d2d2d7c08d4: Pull complete
+e5fe2df78490: Pull complete
+c5f1df999e81: Verifying Checksum
+c5f1df999e81: Download complete
+c5f1df999e81: Pull complete
+Digest: sha256:ac440d22be6909c6148e5a2f35ce3ec5fea13241c136ade2d1a667216d91d7f5
+Status: Downloaded newer image for quay.io/biocontainers/ete3:3.1.1--pyh24bf2e0_1
+Command 'ps' required by nextflow to collect task metrics cannot be found

@@ -1,28 +1,5 @@
-process GRAFT_TREES {
-    tag "tree_grafting"
-    label 'process_medium'
-    container "quay.io/biocontainers/ete3:3.1.1--pyh24bf2e0_1"
-    
-    publishDir "${params.outdir}/Integrated_Results", mode: params.publish_dir_mode, pattern: "*.{tre,txt,pdf}"
-
-    input:
-    path tree_files
-    path clusters_file
-    path integrated_alignment
-
-    output:
-    path "grafted_supertree.tre", emit: supertree
-    path "tree_grafting_report.txt", emit: report
-    path "cluster_tree_summary.tsv", emit: tree_summary
-    path "supertree_visualization.pdf", optional: true, emit: visualization
-    path "versions.yml", emit: versions
-
-    when:
-    task.ext.when == null || task.ext.when
-
-    script:
-    """
-    # Install compatible versions of numpy and pandas
+#!/bin/bash -euo pipefail
+# Install compatible versions of numpy and pandas
     pip install --upgrade numpy>=1.15.4
     pip install pandas
 
@@ -45,15 +22,15 @@ def graft_cluster_trees():
     
     # Read cluster assignments
     if pandas_available:
-        clusters_df = pd.read_csv("${clusters_file}", sep='\\t')
+        clusters_df = pd.read_csv("clusters.tsv", sep='\t')
         sample_to_cluster = dict(zip(clusters_df['sample_id'], clusters_df['cluster_id']))
     else:
         # Basic file reading without pandas
         sample_to_cluster = {}
-        with open("${clusters_file}", 'r') as f:
+        with open("clusters.tsv", 'r') as f:
             lines = f.readlines()
         for line in lines[1:]:  # Skip header
-            parts = line.strip().split('\\t')
+            parts = line.strip().split('\t')
             if len(parts) >= 2:
                 sample_to_cluster[parts[1]] = parts[0]  # sample_id -> cluster_id
     
@@ -102,15 +79,15 @@ def graft_cluster_trees():
         print("Error: No valid trees found for grafting")
         # Create empty outputs
         with open("grafted_supertree.tre", 'w') as f:
-            f.write("();\\n")
+            f.write("();\n")
         with open("tree_grafting_report.txt", 'w') as f:
-            f.write("No trees available for grafting\\n")
+            f.write("No trees available for grafting\n")
         
         if pandas_available:
-            pd.DataFrame().to_csv("cluster_tree_summary.tsv", sep='\\t', index=False)
+            pd.DataFrame().to_csv("cluster_tree_summary.tsv", sep='\t', index=False)
         else:
             with open("cluster_tree_summary.tsv", 'w') as f:
-                f.write("cluster_id\\ttree_file\\tnum_leaves\\ttree_length\\tnum_internal_nodes\\n")
+                f.write("cluster_id\ttree_file\tnum_leaves\ttree_length\tnum_internal_nodes\n")
         return
     
     # Create supertree using simple grafting approach
@@ -141,34 +118,34 @@ def graft_cluster_trees():
     # Create tree summary
     if pandas_available:
         tree_summary_df = pd.DataFrame(tree_summary_data)
-        tree_summary_df.to_csv("cluster_tree_summary.tsv", sep='\\t', index=False)
+        tree_summary_df.to_csv("cluster_tree_summary.tsv", sep='\t', index=False)
     else:
         with open("cluster_tree_summary.tsv", 'w') as f:
-            f.write("cluster_id\\ttree_file\\tnum_leaves\\ttree_length\\tnum_internal_nodes\\n")
+            f.write("cluster_id\ttree_file\tnum_leaves\ttree_length\tnum_internal_nodes\n")
             for data in tree_summary_data:
-                f.write(f"{data['cluster_id']}\\t{data['tree_file']}\\t{data['num_leaves']}\\t{data['tree_length']:.6f}\\t{data['num_internal_nodes']}\\n")
+                f.write(f"{data['cluster_id']}\t{data['tree_file']}\t{data['num_leaves']}\t{data['tree_length']:.6f}\t{data['num_internal_nodes']}\n")
     
     # Create detailed report
     with open("tree_grafting_report.txt", 'w') as f:
-        f.write("TREE GRAFTING ANALYSIS REPORT\\n")
-        f.write("=" * 50 + "\\n\\n")
+        f.write("TREE GRAFTING ANALYSIS REPORT\n")
+        f.write("=" * 50 + "\n\n")
         
-        f.write(f"Total cluster trees processed: {len(cluster_trees)}\\n")
-        f.write(f"Total leaves in supertree: {len(supertree.get_leaves())}\\n")
-        f.write(f"Supertree depth: {supertree.get_farthest_leaf()[1]}\\n\\n")
+        f.write(f"Total cluster trees processed: {len(cluster_trees)}\n")
+        f.write(f"Total leaves in supertree: {len(supertree.get_leaves())}\n")
+        f.write(f"Supertree depth: {supertree.get_farthest_leaf()[1]}\n\n")
         
-        f.write("Cluster tree statistics:\\n")
-        f.write("-" * 30 + "\\n")
+        f.write("Cluster tree statistics:\n")
+        f.write("-" * 30 + "\n")
         
         for data in tree_summary_data:
-            f.write(f"Cluster {data['cluster_id']}:\\n")
-            f.write(f"  - Leaves: {data['num_leaves']}\\n")
-            f.write(f"  - Internal nodes: {data['num_internal_nodes']}\\n")
-            f.write(f"  - Tree length: {data['tree_length']:.6f}\\n")
-            f.write(f"  - Source file: {data['tree_file']}\\n\\n")
+            f.write(f"Cluster {data['cluster_id']}:\n")
+            f.write(f"  - Leaves: {data['num_leaves']}\n")
+            f.write(f"  - Internal nodes: {data['num_internal_nodes']}\n")
+            f.write(f"  - Tree length: {data['tree_length']:.6f}\n")
+            f.write(f"  - Source file: {data['tree_file']}\n\n")
         
-        f.write("Grafting method: Star topology with cluster subtrees\\n")
-        f.write("Note: Each cluster forms a monophyletic group in the supertree\\n")
+        f.write("Grafting method: Star topology with cluster subtrees\n")
+        f.write("Note: Each cluster forms a monophyletic group in the supertree\n")
     
     # Create visualization (optional, may fail if display not available)
     try:
@@ -209,11 +186,9 @@ graft_cluster_trees()
 EOF
 
     cat <<-END_VERSIONS > versions.yml
-    "${task.process}":
-        python: \$(python --version | sed 's/Python //')
-        ete3: \$(python -c "import ete3; print(ete3.__version__)")
-        pandas: \$(python -c "try: import pandas; print(pandas.__version__); except: print('not available')")
-        numpy: \$(python -c "try: import numpy; print(numpy.__version__); except: print('not available')")
+    "ASSEMBLY_SNPS_SCALABLE:INTEGRATE_RESULTS:GRAFT_TREES":
+        python: $(python --version | sed 's/Python //')
+        ete3: $(python -c "import ete3; print(ete3.__version__)")
+        pandas: $(python -c "try: import pandas; print(pandas.__version__); except: print('not available')")
+        numpy: $(python -c "try: import numpy; print(numpy.__version__); except: print('not available')")
     END_VERSIONS
-    """
-}
